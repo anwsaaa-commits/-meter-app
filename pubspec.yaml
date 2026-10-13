@@ -10,10 +10,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  geolocator: any
-  sqflite: any
-  path: any
-  intl: any
+  geolocator: ^10.1.0
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  intl: ^0.18.1
   cupertino_icons: ^1.0.6
 
 dev_dependencies:
