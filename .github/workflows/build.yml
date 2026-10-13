@@ -24,22 +24,11 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Extract project and prepare structure
+      - name: Initialize Clean Flutter Project
         run: |
-          # إذا كان المشروع مضغوطاً، سنقوم بفكه، أو إنشاء هيكل نظيف إذا لزم الأمر
-          if [ -f "smart_taxi_meter_flutter.zip" ]; then
-            unzip -o smart_taxi_meter_flutter.zip -d extracted_project
-            cp -r extracted_project/* .
-          fi
+          flutter create . --org com.taxi --project-name smart_taxi_meter_flutter --platforms=android
           
-          # التحقق من وجود مجلد android وإنشاؤه تلقائياً إن لمש يكن موجوداً
-          if [ ! -d "android" ]; then
-            flutter create . --org com.example --project-name smart_taxi_meter_flutter --platforms=android
-          fi
-
-          # التأكد من مكان ملف main.dart الرئيسي
-          if [ -f "main.dart" ] && [ ! -f "lib/main.dart" ]; then
-            mkdir -p lib
+          if [ -f "main.dart" ]; then
             cp main.dart lib/main.dart
           fi
 
@@ -47,11 +36,10 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --debug
+        run: flutter build apk --debug --enable-experiment=dot-shorthands
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: build/app/outputs/flutter-apk/app-debug.apk
-          
