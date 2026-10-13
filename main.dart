@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,7 +62,7 @@ class DatabaseHelper {
 
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
+    final path = p.join(dbPath, filePath);
 
     return await openDatabase(
       path,
@@ -142,12 +142,10 @@ class TaxiMeterScreen extends StatefulWidget {
 }
 
 class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
-  // إعدادات التسعير
-  double baseFare = 500.0;         // رسوم فتح الباب
-  double ratePerKm = 1000.0;       // سعر الكيلومتر
-  double ratePerMinuteWait = 50.0; // سعر دقيقة الانتظار
+  double baseFare = 500.0;
+  double ratePerKm = 1000.0;
+  double ratePerMinuteWait = 50.0;
 
-  // متغيرات المشوار
   bool isTripActive = false;
   bool isPaused = false;
   double totalDistanceInMeters = 0.0;
@@ -160,7 +158,6 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
   Position? _lastPosition;
   Timer? _timer;
 
-  // نافذة الإعدادات والتسعير
   void _openSettingsDialog() {
     TextEditingController baseController = TextEditingController(text: baseFare.toStringAsFixed(0));
     TextEditingController rateController = TextEditingController(text: ratePerKm.toStringAsFixed(0));
@@ -227,7 +224,6 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
     );
   }
 
-  // بدء المشوار
   Future<void> _startTrip() async {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -349,7 +345,7 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
                 children: [
                   const Text('المبلغ الإجمالي:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
                   Text(
-                    '${currencyFormatter.format(totalFare.round())}',
+                    currencyFormatter.format(totalFare.round()),
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Color(0xFF10B981)),
                   ),
                 ],
@@ -417,7 +413,6 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // بطاقة التكلفة الرئيسية
               Card(
                 color: const Color(0xFF0A0F1D),
                 shape: RoundedRectangleBorder(
@@ -452,10 +447,7 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // شبكة تفاصيل المشوار
               Expanded(
                 child: GridView.count(
                   crossAxisCount: 2,
@@ -490,8 +482,6 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
                   ],
                 ),
               ),
-
-              // أزرار التحكم بالمشوار
               if (!isTripActive)
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -595,31 +585,31 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  List<TripModel> _trips = [];
-  double _totalRevenue = 0.0;
-  bool _isLoading = true;
+  late Future<List<TripModel>> _tripsFuture;
+
+  @override
+  void initState() {
+    // شاشة سجل المشاوير
+class HistoryScreen extends StatefulWidget {
+  const HistoryScreen({super.key});
+
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  late Future<List<TripModel>> _tripsFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadHistory();
+    _loadTrips();
   }
 
-  Future<void> _loadHistory() async {
-    setState(() => _isLoading = true);
-    final trips = await DatabaseHelper.instance.getAllTrips();
-    final revenue = await DatabaseHelper.instance.getTotalRevenue();
+  void _loadTrips() {
     setState(() {
-      _trips = trips;
-      _totalRevenue = revenue;
-      _isLoading = false;
+      _tripsFuture = DatabaseHelper.instance.getAllTrips();
     });
-  }
-
-  String _formatTime(int seconds) {
-    int mins = seconds ~/ 60;
-    int secs = seconds % 60;
-    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -630,118 +620,66 @@ class _HistoryScreenState extends State<HistoryScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('سجل المشاوير والإيرادات'),
-          centerTitle: true,
+          title: const Text('سجل المشاوير السابقة'),
           backgroundColor: const Color(0xFF0F172A),
           actions: [
             IconButton(
               icon: const Icon(Icons.delete_sweep, color: Colors.redAccent),
-              tooltip: 'مسح السجل بالكامل',
+              tooltip: 'حذف السجل بالكامل',
               onPressed: () async {
                 await DatabaseHelper.instance.clearHistory();
-                _loadHistory();
+                _loadTrips();
               },
             ),
           ],
         ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFFF59E0B)))
-            : Column(
-                children: [
-                  // بطاقة ملخص الإيرادات
-                  Container(
-                    margin: const EdgeInsets.all(16),
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Column(
-                          children: [
-                            const Text('إجمالي الإيرادات', style: TextStyle(color: Colors.white60, fontSize: 12)),
-                            const SizedBox(height: 4),
-                            Text(
-                              currencyFormatter.format(_totalRevenue.round()),
-                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B)),
-                            ),
-                          ],
-                        ),
-                        Container(height: 36, width: 1, color: Colors.white24),
-                        Column(
-                          children: [
-                            const Text('عدد المشاوير', style: TextStyle(color: Colors.white60, fontSize: 12)),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_trips.length}',
-                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+        body: FutureBuilder<List<TripModel>>(
+          future: _tripsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: Color(0xFFF59E0B)));
+            } else if (snapshot.hasError) {
+              return Center(child: Text('حدث خطأ: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(
+                child: Text('لا توجد مشاوير مسجلة حتى الآن', style: TextStyle(color: Colors.white60, fontSize: 16)),
+              );
+            }
 
-                  // قائمة المشاوير
-                  Expanded(
-                    child: _trips.isEmpty
-                        ? const Center(child: Text('لا توجد مشاوير مسجلة في قاعدة البيانات', style: TextStyle(color: Colors.white54)))
-                        : ListView.separated(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: _trips.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
-                            itemBuilder: (ctx, index) {
-                              final trip = _trips[index];
-                              return Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1E293B),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.white10),
-                                ),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundColor: const Color(0xFFF59E0B).withOpacity(0.2),
-                                      child: Text(
-                                        '#${trip.id ?? (index + 1)}',
-                                        style: const TextStyle(color: Color(0xFFF59E0B), fontWeight: FontWeight.bold, fontSize: 12),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(trip.date, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            '${trip.distanceKm.toStringAsFixed(2)} كم • ${_formatTime(trip.durationSeconds)}',
-                                            style: const TextStyle(color: Colors.white60, fontSize: 12),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Text(
-                                      currencyFormatter.format(trip.fare.round()),
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF10B981),
-                                        fontFamily: 'monospace',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
+            final trips = snapshot.data!;
+            return ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: trips.length,
+              itemBuilder: (context, index) {
+                final trip = trips.length > index ? trips[index] : trips[0];
+                return Card(
+                  color: const Color(0xFF1E293B),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: ListTile(
+                    title: Text(
+                      'الأجرة: ${currencyFormatter.format(trip.fare.round())}',
+                      style: const TextStyle(color: Color(0xFFF59E0B), fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      'المسافة: ${trip.distanceKm.toStringAsFixed(2)} كم\nالتاريخ: ${trip.date}',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.redAccent),
+                      onPressed: () async {
+                        if (trip.id != null) {
+                          await DatabaseHelper.instance.deleteTrip(trip.id!);
+                          _loadTrips();
+                        }
+                      },
+                    ),
                   ),
-                ],
-              ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
