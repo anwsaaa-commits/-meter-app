@@ -23,10 +23,9 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Upgrade dependencies automatically
+        run: flutter pub upgrade --major-versions
 
       - name: Build APK
         run: flutter build apk --debug
