@@ -10,7 +10,6 @@ void main() {
   runApp(const TaxiApp());
 }
 
-// نموذج بيانات المشوار
 class TripModel {
   final int? id;
   final double distanceKm;
@@ -47,7 +46,6 @@ class TripModel {
   }
 }
 
-// مدير قاعدة البيانات المحلية SQLite
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
@@ -92,15 +90,6 @@ class DatabaseHelper {
     return result.map((json) => TripModel.fromMap(json)).toList();
   }
 
-  Future<double> getTotalRevenue() async {
-    final db = await instance.database;
-    final result = await db.rawQuery('SELECT SUM(fare) as total FROM trips');
-    if (result.isNotEmpty && result.first['total'] != null) {
-      return (result.first['total'] as num).toDouble();
-    }
-    return 0.0;
-  }
-
   Future<void> deleteTrip(int id) async {
     final db = await instance.database;
     await db.delete('trips', where: 'id = ?', whereArgs: [id]);
@@ -111,7 +100,6 @@ class DatabaseHelper {
     await db.delete('trips');
   }
 }
-
 class TaxiApp extends StatelessWidget {
   const TaxiApp({super.key});
 
@@ -177,35 +165,23 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
                 TextField(
                   controller: baseController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'رسوم فتح الباب (البداية)',
-                    labelStyle: TextStyle(color: Colors.white70),
-                  ),
+                  decoration: const InputDecoration(labelText: 'رسوم فتح الباب', labelStyle: TextStyle(color: Colors.white70)),
                 ),
                 TextField(
                   controller: rateController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'سعر الكيلومتر الواحد',
-                    labelStyle: TextStyle(color: Colors.white70),
-                  ),
+                  decoration: const InputDecoration(labelText: 'سعر الكيلومتر', labelStyle: TextStyle(color: Colors.white70)),
                 ),
                 TextField(
                   controller: waitController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'سعر دقيقة الانتظار (في الزحمة)',
-                    labelStyle: TextStyle(color: Colors.white70),
-                  ),
+                  decoration: const InputDecoration(labelText: 'سعر دقيقة الانتظار', labelStyle: TextStyle(color: Colors.white70)),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('إلغاء'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF59E0B)),
               onPressed: () {
@@ -223,8 +199,7 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
       ),
     );
   }
-
-  Future<void> _startTrip() async {
+    Future<void> _startTrip() async {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -252,10 +227,7 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
       });
     });
 
-    const LocationSettings locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 3,
-    );
+    const LocationSettings locationSettings = LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 3);
 
     _positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position position) {
       setState(() {
@@ -356,7 +328,7 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('تم وحفظ في SQLite', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text('تم وحفظ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -391,7 +363,6 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
           actions: [
             IconButton(
               icon: const Icon(Icons.history, color: Color(0xFFF59E0B)),
-              tooltip: 'سجل المشاوير',
               onPressed: isTripActive
                   ? null
                   : () {
@@ -403,7 +374,6 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
             ),
             IconButton(
               icon: const Icon(Icons.settings, color: Colors.white),
-              tooltip: 'الإعدادات',
               onPressed: isTripActive ? null : _openSettingsDialog,
             ),
           ],
@@ -424,25 +394,14 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
                   child: Column(
                     children: [
-                      const Text(
-                        'الأجرة الإجمالية للمشوار',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
-                      ),
+                      const Text('الأجرة الإجمالية للمشوار', style: TextStyle(color: Colors.white70, fontSize: 14)),
                       const SizedBox(height: 8),
                       Text(
                         currencyFormatter.format(totalFare.round()),
-                        style: const TextStyle(
-                          fontSize: 54,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFF59E0B),
-                          fontFamily: 'monospace',
-                        ),
+                        style: const TextStyle(fontSize: 54, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B), fontFamily: 'monospace'),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        'فتح الباب: ${baseFare.toStringAsFixed(0)} • السعر/كم: ${ratePerKm.toStringAsFixed(0)}',
-                        style: const TextStyle(color: Colors.white54, fontSize: 13),
-                      ),
+                      Text('فتح الباب: ${baseFare.toStringAsFixed(0)} • السعر/كم: ${ratePerKm.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white54, fontSize: 13)),
                     ],
                   ),
                 ),
@@ -455,30 +414,10 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
                   mainAxisSpacing: 12,
                   childAspectRatio: 1.4,
                   children: [
-                    _buildMetricCard(
-                      'المسافة المقطوعة',
-                      '${(totalDistanceInMeters / 1000).toStringAsFixed(2)} كم',
-                      Icons.navigation,
-                      const Color(0xFF06B6D4),
-                    ),
-                    _buildMetricCard(
-                      'السرعة الحالية',
-                      '${currentSpeed.toStringAsFixed(0)} كم/س',
-                      Icons.speed,
-                      const Color(0xFF10B981),
-                    ),
-                    _buildMetricCard(
-                      'الوقت المنقضي',
-                      _formatTime(elapsedSeconds),
-                      Icons.timer,
-                      Colors.white70,
-                    ),
-                    _buildMetricCard(
-                      'وقت الانتظار',
-                      _formatTime(pausedSeconds),
-                      Icons.pause_circle_outline,
-                      const Color(0xFFF59E0B),
-                    ),
+                    _buildMetricCard('المسافة المقطوعة', '${(totalDistanceInMeters / 1000).toStringAsFixed(2)} كم', Icons.navigation, const Color(0xFF06B6D4)),
+                    _buildMetricCard('السرعة الحالية', '${currentSpeed.toStringAsFixed(0)} كم/س', Icons.speed, const Color(0xFF10B981)),
+                    _buildMetricCard('الوقت المنقضي', _formatTime(elapsedSeconds), Icons.timer, Colors.white70),
+                    _buildMetricCard('وقت الانتظار', _formatTime(pausedSeconds), Icons.pause_circle_outline, const Color(0xFFF59E0B)),
                   ],
                 ),
               ),
@@ -491,10 +430,7 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
                   ),
                   onPressed: _startTrip,
                   icon: const Icon(Icons.play_arrow, size: 28, color: Colors.white),
-                  label: const Text(
-                    'بدء المشوار',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
+                  label: const Text('بدء المشوار', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                 )
               else
                 Row(
@@ -507,18 +443,8 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
                         onPressed: _togglePause,
-                        icon: Icon(
-                          isPaused ? Icons.play_arrow : Icons.pause,
-                          color: isPaused ? Colors.black : Colors.white,
-                        ),
-                        label: Text(
-                          isPaused ? 'استئناف المشوار' : 'إيقاف مؤقت / انتظار',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: isPaused ? Colors.black : Colors.white,
-                          ),
-                        ),
+                        icon: Icon(isPaused ? Icons.play_arrow : Icons.pause, color: isPaused ? Colors.black : Colors.white),
+                        label: Text(isPaused ? 'استئناف' : 'انتظار', style: TextStyle(fontWeight: FontWeight.bold, color: isPaused ? Colors.black : Colors.white)),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -531,10 +457,7 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
                         ),
                         onPressed: _stopTrip,
                         icon: const Icon(Icons.stop, color: Colors.white),
-                        label: const Text(
-                          'إنهاء المشوار',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
+                        label: const Text('إنهاء', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                       ),
                     ),
                   ],
@@ -566,30 +489,13 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color, fontFamily: 'monospace'),
-          ),
+          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color, fontFamily: 'monospace')),
         ],
       ),
     );
   }
 }
-
 // شاشة سجل المشاوير
-class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
-
-  @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
-}
-
-class _HistoryScreenState extends State<HistoryScreen> {
-  late Future<List<TripModel>> _tripsFuture;
-
-  @override
-  void initState() {
-    // شاشة سجل المشاوير
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
