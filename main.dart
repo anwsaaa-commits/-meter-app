@@ -1,4 +1,5 @@
-import 'dart:ui';
+import 'dart:ui' as ui;
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -155,7 +156,8 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
     showDialog(
       context: context,
       builder: (ctx) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: ui.TextDirection.rtl,
+
         child: AlertDialog(
           backgroundColor: const Color(0xFF1E293B),
           title: const Text('تعديل التسعيرة والرسوم', style: TextStyle(color: Colors.white)),
@@ -299,7 +301,8 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
     showDialog(
       context: context,
       builder: (ctx) => Directionality(
-        textDirection: TextDirection.rtl,
+        textDirection: ui.TextDirection.rtl,
+
         child: AlertDialog(
           backgroundColor: const Color(0xFF1E293B),
           title: const Text('ملخص المشوار النهائي', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -355,7 +358,8 @@ class _TaxiMeterScreenState extends State<TaxiMeterScreen> {
     final currencyFormatter = NumberFormat('#,##0', 'en_US');
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: ui.TextDirection.rtl,
+
       child: Scaffold(
         appBar: AppBar(
           title: const Text('عداد التاكسي الذكي', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -524,7 +528,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final currencyFormatter = NumberFormat('#,##0', 'en_US');
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: ui.TextDirection.rtl,
+
       child: Scaffold(
         appBar: AppBar(
           title: const Text('سجل المشاوير السابقة'),
