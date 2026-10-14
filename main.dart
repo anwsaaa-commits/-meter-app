@@ -1,6 +1,8 @@
 Dart
+
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,13 +15,19 @@ void main() {
   runApp(const TaxiApp());
 }
 
-const phone = '+967777521058';
-const waPhone = '967777521058';
+const String phone = '+967777521058';
+const String waPhone = '967777521058';
 
 class Trip {
-  final String id, from, to;
-  final DateTime startedAt, endedAt;
-  final double km, fare, fuelCost, waitingMinutes;
+  final String id;
+  final String from;
+  final String to;
+  final DateTime startedAt;
+  final DateTime endedAt;
+  final double km;
+  final double fare;
+  final double fuelCost;
+  final double waitingMinutes;
 
   Trip({
     required this.id,
@@ -34,28 +42,29 @@ class Trip {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'from': from,
-    'to': to,
-    'startedAt': startedAt.toIso8601String(),
-    'endedAt': endedAt.toIso8601String(),
-    'km': km,
-    'fare': fare,
-    'fuelCost': fuelCost,
-    'waitingMinutes': waitingMinutes,
-  };
+        'id': id,
+        'from': from,
+        'to': to,
+        'startedAt': startedAt.toIso8601String(),
+        'endedAt': endedAt.toIso8601String(),
+        'km': km,
+        'fare': fare,
+        'fuelCost': fuelCost,
+        'waitingMinutes': waitingMinutes,
+      };
 
   factory Trip.fromJson(Map<String, dynamic> j) => Trip(
-    id: j['id'] ?? '',
-    from: j['from'] ?? '',
-    to: j['to'] ?? '',
-    startedAt: DateTime.parse(j['startedAt']),
-    endedAt: DateTime.parse(j['endedAt']),
-    km: (j['km'] as num).toDouble(),
-    fare: (j['fare'] as num).toDouble(),
-    fuelCost: (j['fuelCost'] as num).toDouble(),
-    waitingMinutes: ((j['waitingMinutes'] ?? 0) as num).toDouble(),
-  );
+        id: j['id'] ?? '',
+        from: j['from'] ?? '',
+        to: j['to'] ?? '',
+        startedAt: DateTime.parse(j['startedAt']),
+        endedAt: DateTime.parse(j['endedAt']),
+        km: (j['km'] as num).toDouble(),
+        fare: (j['fare'] as num).toDouble(),
+        fuelCost: (j['fuelCost'] as num).toDouble(),
+        waitingMinutes:
+            ((j['waitingMinutes'] ?? 0) as num).toDouble(),
+      );
 }
 
 class Expense {
@@ -66,35 +75,37 @@ class Expense {
   Expense(this.title, this.amount, this.date);
 
   Map<String, dynamic> toJson() => {
-    'title': title,
-    'amount': amount,
-    'date': date.toIso8601String(),
-  };
+        'title': title,
+        'amount': amount,
+        'date': date.toIso8601String(),
+      };
 
   factory Expense.fromJson(Map<String, dynamic> j) => Expense(
-    j['title'] ?? '',
-    (j['amount'] as num).toDouble(),
-    DateTime.parse(j['date']),
-  );
+        j['title'] ?? '',
+        (j['amount'] as num).toDouble(),
+        DateTime.parse(j['date']),
+      );
 }
 
 class TaxiApp extends StatelessWidget {
   const TaxiApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'تكسي الشاهين',
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xff087f5b),
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'تكسي الشاهين',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xff087f5b),
+        ),
+        useMaterial3: true,
+        fontFamily: 'Arial',
       ),
-      useMaterial3: true,
-      fontFamily: 'Arial',
-    ),
-    home: const TaxiHome(),
-  );
-}
+      home: const TaxiHome(),
+    );
+  }
+  Dart
 
 class TaxiHome extends StatefulWidget {
   const TaxiHome({super.key});
@@ -150,29 +161,39 @@ class _TaxiHomeState extends State<TaxiHome> {
   Future<void> _load() async {
     prefs = await SharedPreferences.getInstance();
 
-    final loadedTrips = (jsonDecode(
-      prefs!.getString('trips') ?? '[]',
-    ) as List)
-        .map((e) => Trip.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
+    try {
+      final loadedTrips = (jsonDecode(
+        prefs!.getString('trips') ?? '[]',
+      ) as List)
+          .map((e) => Trip.fromJson(
+                Map<String, dynamic>.from(e),
+              ))
+          .toList();
 
-    final loadedExpenses = (jsonDecode(
-      prefs!.getString('expenses') ?? '[]',
-    ) as List)
-        .map((e) => Expense.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
+      final loadedExpenses = (jsonDecode(
+        prefs!.getString('expenses') ?? '[]',
+      ) as List)
+          .map((e) => Expense.fromJson(
+                Map<String, dynamic>.from(e),
+              ))
+          .toList();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      baseFare = prefs!.getDouble('baseFare') ?? 500;
-      perKm = prefs!.getDouble('perKm') ?? 200;
-      perMinute = prefs!.getDouble('perMinute') ?? 50;
-      fuelPrice = prefs!.getDouble('fuelPrice') ?? 1550;
-      consumption = prefs!.getDouble('consumption') ?? 10;
-      trips = loadedTrips;
-      expenses = loadedExpenses;
-    });
+      setState(() {
+        baseFare = prefs!.getDouble('baseFare') ?? 500;
+        perKm = prefs!.getDouble('perKm') ?? 200;
+        perMinute = prefs!.getDouble('perMinute') ?? 50;
+        fuelPrice = prefs!.getDouble('fuelPrice') ?? 1550;
+        consumption = prefs!.getDouble('consumption') ?? 10;
+        trips = loadedTrips;
+        expenses = loadedExpenses;
+      });
+    } catch (_) {
+      if (mounted) {
+        _snack('تعذر قراءة البيانات المحفوظة');
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -214,6 +235,8 @@ class _TaxiHomeState extends State<TaxiHome> {
       revenue - fuelTotal - expensesTotal;
 
   Future<void> _startTrip() async {
+    if (running) return;
+
     if (fromController.text.trim().isEmpty) {
       _snack('اكتب منطقة الانطلاق أولاً');
       return;
@@ -256,11 +279,14 @@ class _TaxiHomeState extends State<TaxiHome> {
       setState(() {
         lastPosition = position;
         tripKm = 0;
-        waitingMinutes = double.tryParse(waitController.text) ?? 0;
+        waitingMinutes =
+            double.tryParse(waitController.text) ?? 0;
         startedAt = DateTime.now();
         running = true;
         gpsMessage = 'GPS يعمل';
       });
+
+      gpsSub?.cancel();
 
       gpsSub = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
@@ -326,6 +352,7 @@ class _TaxiHomeState extends State<TaxiHome> {
     setState(() {
       trips.insert(0, trip);
       running = false;
+      lastPosition = null;
       gpsMessage = 'انتهى المشوار';
     });
 
@@ -349,7 +376,10 @@ class _TaxiHomeState extends State<TaxiHome> {
     );
 
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
     } else {
       _snack('تعذر فتح واتساب');
     }
@@ -363,7 +393,11 @@ class _TaxiHomeState extends State<TaxiHome> {
     );
   }
 
-  String money(num value) => '${value.toStringAsFixed(0)} ريال';
+  String money(num value) =>
+      '${value.toStringAsFixed(0)} ريال';
+  
+}
+Dart
 
   Future<void> _settings() async {
     final b = TextEditingController(text: baseFare.toStringAsFixed(0));
@@ -425,7 +459,9 @@ class _TaxiHomeState extends State<TaxiHome> {
       padding: const EdgeInsets.only(bottom: 10),
       child: TextField(
         controller: controller,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        keyboardType: const TextInputType.numberWithOptions(
+          decimal: true,
+        ),
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
@@ -500,11 +536,45 @@ class _TaxiHomeState extends State<TaxiHome> {
       );
     }
 
-    await Share.share(
-      buffer.toString(),
-      subject: 'كشف حساب تكسي الشاهين',
+    await SharePlus.instance.share(
+      ShareParams(
+        text: buffer.toString(),
+        subject: 'كشف حساب تكسي الشاهين',
+      ),
     );
   }
+
+  Widget _stat(String title, String value, IconData icon) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 26),
+            const SizedBox(height: 5),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  Dart
 
   @override
   Widget build(BuildContext context) {
@@ -552,6 +622,7 @@ class _TaxiHomeState extends State<TaxiHome> {
                     Text(
                       'المسافة: ${tripKm.toStringAsFixed(2)} كم'
                       ' • الوقود التقديري: ${money(fuelEstimate)}',
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -640,7 +711,10 @@ class _TaxiHomeState extends State<TaxiHome> {
             const SizedBox(height: 18),
             const Text(
               'ملخص الحساب المحفوظ',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             GridView.count(
@@ -653,9 +727,21 @@ class _TaxiHomeState extends State<TaxiHome> {
               children: [
                 _stat('المشاوير', '${trips.length}', Icons.local_taxi),
                 _stat('الإيرادات', money(revenue), Icons.payments),
-                _stat('تكلفة الوقود', money(fuelTotal), Icons.local_gas_station),
-                _stat('المصاريف الأخرى', money(expensesTotal), Icons.receipt_long),
-                _stat('صافي الربح التقديري', money(netProfit), Icons.account_balance_wallet),
+                _stat(
+                  'تكلفة الوقود',
+                  money(fuelTotal),
+                  Icons.local_gas_station,
+                ),
+                _stat(
+                  'المصاريف الأخرى',
+                  money(expensesTotal),
+                  Icons.receipt_long,
+                ),
+                _stat(
+                  'صافي الربح التقديري',
+                  money(netProfit),
+                  Icons.account_balance_wallet,
+                ),
               ],
             ),
             Row(
@@ -663,7 +749,10 @@ class _TaxiHomeState extends State<TaxiHome> {
                 const Expanded(
                   child: Text(
                     'المصاريف الأخرى',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 TextButton.icon(
@@ -684,7 +773,10 @@ class _TaxiHomeState extends State<TaxiHome> {
             const SizedBox(height: 10),
             const Text(
               'سجل المشاوير',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             if (trips.isEmpty)
               const Padding(
@@ -694,64 +786,22 @@ class _TaxiHomeState extends State<TaxiHome> {
             ...trips.take(50).map(
               (trip) => Card(
                 child: ListTile(
-                  leading: const CircleAvatar(
-                    child: Icon(Icons.local_taxi),
-                  ),
+                  leading: const Icon(Icons.local_taxi),
                   title: Text('${trip.from} ← ${trip.to}'),
                   subtitle: Text(
                     '${fmt.format(trip.startedAt)}\n'
-                    '${trip.km.toStringAsFixed(2)} كم • '
-                    'وقود ${money(trip.fuelCost)}',
+                    '${trip.km.toStringAsFixed(2)} كم'
+                    ' • ${money(trip.fare)}',
                   ),
                   isThreeLine: true,
-                  trailing: Text(
-                    money(trip.fare),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: _shareReport,
-              icon: const Icon(Icons.share),
-              label: const Text('مشاركة كشف الحساب الكامل'),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'ملاحظة: حساب الوقود تقديري حسب استهلاك السيارة المدخل. '
-              'صافي الربح لا يشمل إلا المصاريف التي تسجلها. '
-              'البيانات محفوظة محليًا على هذا الهاتف.',
-              style: TextStyle(fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _stat(String label, String value, IconData icon) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 20),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-            FittedBox(
-              fit: BoxFit.scaleDown,
+            const SizedBox(height: 20),
+            const Center(
               child: Text(
-                value,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                'تكسي الشاهين • اتصل نصل',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ],
