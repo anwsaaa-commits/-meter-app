@@ -564,7 +564,7 @@ class _TaxiHomeState extends State<TaxiHome> {
     final fmt = DateFormat('yyyy/MM/dd – HH:mm');
 
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: TextDirection.RTL,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('تكسي الشاهين'),
