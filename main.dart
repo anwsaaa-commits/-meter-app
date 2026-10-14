@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const TaxiMeterApp());
@@ -15,9 +16,8 @@ class TaxiMeterApp extends StatelessWidget {
       title: 'عداد التاكسي الذكي - أبو شاهين',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F172A), // خلفية داكنة فخمة
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
         primarySwatch: Colors.amber,
-        fontFamily: 'Roboto',
       ),
       home: const TaxiHomePage(),
     );
@@ -32,7 +32,7 @@ class TaxiHomePage extends StatefulWidget {
 }
 
 class _TaxiHomePageState extends State<TaxiHomePage> {
-  // --- متغيرات التسعيرة (مخفية عن الواجهة الرئيسية وموجودة بالإعدادات) ---
+  // --- متغيرات التسعيرة ---
   double baseFare = 500.0;       // فتح الباب
   double farePerKm = 1000.0;     // سعر الكيلو
   double farePerMinute = 100.0;  // سعر دقيقة الانتظار
@@ -46,12 +46,11 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
 
   Timer? _tripTimer;
 
-  // --- متغيرات حاسبة أرباح الوقود الخاصة بك ---
-  double fuelPricePerLiter = 1200.0; // سعر اللتر
-  double kmPerLiter = 10.0;          // معدل الاستهلاك (كم لكل لتر)
-  double dailyRevenue = 0.0;          // إجمالي الإيراد اليومي
+  // --- متغيرات حاسبة أرباح الوقود ---
+  double fuelPricePerLiter = 1200.0;
+  double kmPerLiter = 10.0;
+  double dailyRevenue = 0.0;
 
-  // التحكم بالعداد
   void _toggleTrip() {
     setState(() {
       isTripActive = !isTripActive;
@@ -70,11 +69,10 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
       if (!isTripActive) return;
 
       setState(() {
-        currentSpeed = 40; // سرعة افتراضية أثناء الحركة
+        currentSpeed = 40;
         distanceKm += (currentSpeed / 3600);
         waitingSeconds++;
 
-        // حساب الأجرة الإجمالية شاملة فتح الباب والانتظار والمسافة
         totalFare = baseFare + (distanceKm * farePerKm) + ((waitingSeconds / 60) * farePerMinute);
       });
     });
@@ -98,46 +96,21 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     });
   }
 
-  // نافذة التواصل والطلب (واتساب + اتصال)
-  void _openContactDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.local_taxi, color: Colors.amber),
-            SizedBox(width: 8),
-            Text('حجز مشوار - الشاهين', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'للحجز والتواصل المباشر مع الكابتن أبو شاهين:\n\n📱 967777521058+',
-              style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actions: [
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.check, color: Colors.white),
-            label: const Text('تم', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
+  // 🟢 دالة التحويل المباشر للواتساب برقمك الخاص
+  Future<void> _launchWhatsApp() async {
+    final Uri whatsappUri = Uri.parse("https://wa.me/967777521058?text=مرحباً%20كابتن%20أبو%20شاهين،%20أرغب%20بحجز%20مشوار.");
+    try {
+      if (await canLaunchUrl(whatsappUri)) {
+        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(whatsappUri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint("خطأ في فتح الواتساب: $e");
+    }
   }
 
-  // 📊 شاشة حاسبة الأرباح واستهلاك الوقود الخاصة بك وحدك
+  // 📊 شاشة حاسبة الأرباح واستهلاك الوقود الخاصة بك
   void _showProfitAndFuelCalculator() {
     TextEditingController fuelPriceCtrl = TextEditingController(text: fuelPricePerLiter.toStringAsFixed(0));
     TextEditingController kmPerLiterCtrl = TextEditingController(text: kmPerLiter.toStringAsFixed(1));
@@ -153,7 +126,6 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
       builder: (context) {
         return StatefulWidget(
           builder: (context, setModalState) {
-            // حسابات الوقود والأرباح
             double totalKmDriven = distanceKm; 
             double fuelUsedLiters = totalKmDriven > 0 ? (totalKmDriven / kmPerLiter) : 0.0;
             double fuelCost = fuelUsedLiters * fuelPricePerLiter;
@@ -187,8 +159,6 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                     ),
                     const Divider(color: Colors.white24),
                     const SizedBox(height: 10),
-
-                    // إدخال بيانات سعر الوقود والاستهلاك
                     Row(
                       children: [
                         Expanded(
@@ -234,7 +204,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                       keyboardType: TextInputType.number,
                       style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
-                        labelText: 'إجمالي الدخل اليومي / المشوار (ريال)',
+                        labelText: 'إجمالي الدخل اليومي (ريال)',
                         labelStyle: TextStyle(color: Colors.white60, fontSize: 13),
                         border: OutlineInputBorder(),
                       ),
@@ -245,8 +215,6 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                       },
                     ),
                     const SizedBox(height: 16),
-
-                    // بطاقة نتائج التقرير المالي
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -262,7 +230,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                           const SizedBox(height: 8),
                           _buildReportRow('تكلفة الوقود:', '${fuelCost.toStringAsFixed(0)} ريال', Colors.redAccent),
                           const Divider(color: Colors.white24, height: 20),
-                          _buildReportRow('صافي الأرباح الربح:', '${netProfit.toStringAsFixed(0)} ريال', Colors.greenAccent, isBold: true),
+                          _buildReportRow('صافي الأرباح:', '${netProfit.toStringAsFixed(0)} ريال', Colors.greenAccent, isBold: true),
                         ],
                       ),
                     ),
@@ -294,7 +262,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     );
   }
 
-  // ⚙️ نافذة الإعدادات الشاملة
+  // ⚙️ نافذة الإعدادات
   void _showSettingsDialog() {
     TextEditingController baseController = TextEditingController(text: baseFare.toStringAsFixed(0));
     TextEditingController kmController = TextEditingController(text: farePerKm.toStringAsFixed(0));
@@ -341,8 +309,6 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                 ),
               ),
               const SizedBox(height: 20),
-              
-              // زر خاص بدخول كشف حساب الوقود والأرباح
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
@@ -404,7 +370,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. الشريط العلوي
+                // الشريط العلوي
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -430,7 +396,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                 ),
                 const SizedBox(height: 20),
 
-                // 2. شاشة الأجرة الرئيسية المصممة بفخامة (تم إخفاء فتح الباب والانتظار منها)
+                // شاشة الأجرة الرئيسية
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
                   decoration: BoxDecoration(
@@ -481,7 +447,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                 ),
                 const SizedBox(height: 20),
 
-                // 3. بطاقات المسافة والسرعة الحالية بحواف منحنية وجذابة
+                // بطاقات المسافة والسرعة الحالية
                 Row(
                   children: [
                     Expanded(
@@ -549,12 +515,12 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                 ),
                 const SizedBox(height: 24),
 
-                // 4. زر الطلب عبر واتساب أو الاتصال
+                // زر حجز عبر واتساب المباشر على الواجهة
                 ElevatedButton.icon(
-                  onPressed: _openContactDialog,
-                  icon: const Icon(Icons.phone_in_talk, color: Colors.white),
+                  onPressed: _launchWhatsApp,
+                  icon: const Icon(Icons.chat, color: Colors.white),
                   label: const Text(
-                    'طلب مشوار عبر واتساب أو الاتصال',
+                    'طلب مشوار عبر واتساب (الشاهين)',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -569,7 +535,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                 ),
                 const SizedBox(height: 14),
 
-                // 5. أزرار التحكم بالمشوار (بدء/إيقاف وإعادة الضبط)
+                // أزرار التحكم بالمشوار (بدء/إيقاف وإعادة الضبط)
                 Row(
                   children: [
                     Expanded(
