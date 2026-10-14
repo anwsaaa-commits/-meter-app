@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const TaxiMeterApp());
@@ -31,27 +30,13 @@ class TaxiHomePage extends StatefulWidget {
 }
 
 class _TaxiHomePageState extends State<TaxiHomePage> {
-  // متغيرات الأسعار والعداد
-  double baseFare = 500.0;     // سعر فتح الباب
-  double farePerKm = 1000.0;   // سعر الكيلومتر
-  double totalFare = 500.0;    // الأجرة الإجمالية
-  double distanceKm = 0.00;    // المسافة المقطوعة
-  int currentSpeed = 0;       // السرعة الحالية
-  
-  bool isTripActive = false;   // حالة المشوار (شغال / متوقف)
+  double baseFare = 500.0;
+  double farePerKm = 1000.0;
+  double totalFare = 500.0;
+  double distanceKm = 0.00;
+  int currentSpeed = 0;
+  bool isTripActive = false;
 
-  // فتح الواتساب
-  Future<void> _openWhatsApp() async {
-    final Uri whatsappUri = Uri.parse(
-        "https://wa.me/967777521058?text=مرحباً،%20أرغب%20بحجز%20مشوار%20مع%20الكابتن%20أبو%20شاهين");
-    if (!await launchUrl(whatsappUri, mode: LaunchMode.externalApplication)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تعذر فتح تطبيق الواتساب')),
-      );
-    }
-  }
-
-  // نافذة تعديل الأسعار (فتح الباب وسعر الكيلو)
   void _showSettingsDialog() {
     TextEditingController baseFareController =
         TextEditingController(text: baseFare.toStringAsFixed(0));
@@ -110,14 +95,12 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     );
   }
 
-  // التحكم بالمشوار (بدء / إيقاف)
   void _toggleTrip() {
     setState(() {
       isTripActive = !isTripActive;
     });
   }
 
-  // إعادة ضبط العداد
   void _resetTrip() {
     setState(() {
       isTripActive = false;
@@ -137,7 +120,6 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // الشريط العلوي (العنوان + زر التعديل/الإعدادات)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -157,8 +139,6 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-
-                // شاشة الأجرة الرئيسية
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -187,8 +167,6 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // بطاقات المسافة والسرعة
                 Row(
                   children: [
                     Expanded(
@@ -243,27 +221,6 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                   ],
                 ),
                 const SizedBox(height: 24),
-
-                // زر حجز المشوار عبر واتساب
-                ElevatedButton.icon(
-                  onPressed: _openWhatsApp,
-                  icon: const Icon(Icons.chat, color: Colors.white),
-                  label: const Text(
-                    'احجز مشوارك عبر واتساب',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // أزرار التحكم بالمشوار (بدء/إيقاف وإعادة ضبط)
                 Row(
                   children: [
                     Expanded(
@@ -281,7 +238,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                           backgroundColor:
                               isTripActive ? Colors.orange : Colors.teal,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -294,7 +251,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                       icon: const Icon(Icons.refresh, color: Colors.redAccent),
                       style: IconButton.styleFrom(
                         backgroundColor: const Color(0xFF1E293B),
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(14),
                       ),
                       tooltip: 'إعادة ضبط المشوار',
                     ),
