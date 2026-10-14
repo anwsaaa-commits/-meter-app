@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const TaxiMeterApp());
@@ -32,47 +32,103 @@ class TaxiHomePage extends StatefulWidget {
 
 class _TaxiHomePageState extends State<TaxiHomePage> {
   // متغيرات التسعيرة
-  double baseFare = 500.0;       // فتح الباب
-  double farePerKm = 1000.0;     // سعر الكيلو
+  double baseFare = 500.0;       // سعر فتح الباب
+  double farePerKm = 1000.0;     // سعر الكيلومتر
   double farePerMinute = 100.0;  // سعر دقيقة الانتظار
 
-  // متغيرات المشوار والعداد
+  // متغيرات العداد والمشوار
   double totalFare = 500.0;
   double distanceKm = 0.00;
   int currentSpeed = 0;
+  int waitingSeconds = 0;
   bool isTripActive = false;
 
-  // فتح الواتساب الخاص بك
-  Future<void> _openWhatsApp() async {
-    final Uri whatsappUri = Uri.parse(
-        "https://wa.me/967777521058?text=مرحباً%20كابتن%20أبو%20شاهين،%20أرغب%20بحجز%20مشوار.");
-    try {
-      if (await canLaunchUrl(whatsappUri)) {
-        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
-      }
-    } catch (e) {
-      debugPrint("خطأ في فتح الواتساب: $e");
-    }
+  Timer? _tripTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // رسالة ترحيبية أو التحقق من جاهزية العداد
   }
 
-  // بدء / إيقاف العداد
+  // بدء أو إيقاف المشوار والعداد
   void _toggleTrip() {
     setState(() {
       isTripActive = !isTripActive;
     });
+
+    if (isTripActive) {
+      _startTimer();
+    } else {
+      _stopTimer();
+    }
   }
 
-  // إعادة ضبط المشوار
+  // العداد التراكمي للمشوار
+  void _startTimer() {
+    _tripTimer?.cancel();
+    _tripTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!isTripActive) return;
+
+      setState(() {
+        currentSpeed = 40; // محاكاة السرعة أثناء الحركة (يمكن ربطها بمستشعر الموقع لاحقاً)
+        distanceKm += (currentSpeed / 3600); 
+        waitingSeconds++;
+        
+        // حساب الأجرة الإجمالية بدقة
+        totalFare = baseFare + (distanceKm * farePerKm) + ((waitingSeconds / 60) * farePerMinute);
+      });
+    });
+  }
+
+  void _stopTimer() {
+    _tripTimer?.cancel();
+    setState(() {
+      currentSpeed = 0;
+    });
+  }
+
+  // إعادة ضبط العداد
   void _resetTrip() {
+    _stopTimer();
     setState(() {
       isTripActive = false;
       distanceKm = 0.0;
       currentSpeed = 0;
+      waitingSeconds = 0;
       totalFare = baseFare;
     });
   }
 
-  // نافذة الإعدادات لتعديل التسعيرة الكاملة
+  // نافذة التواصل عبر واتساب برقمك الخاص
+  void _openWhatsApp() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('حجز مشوار - الشاهين',
+            style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'للحجز والتواصل المباشر مع الكابتن أبو شاهين (الشاهين):\n\n967777521058+',
+          style: TextStyle(fontSize: 16, color: Colors.white70),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('حسناً', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // نافذة إعدادات التسعيرة الشاملة
   void _showSettingsDialog() {
     TextEditingController baseController =
         TextEditingController(text: baseFare.toStringAsFixed(0));
@@ -150,6 +206,12 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _tripTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -269,12 +331,12 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                 ),
                 const SizedBox(height: 20),
 
-                // زر حجز المشوار عبر واتساب المباشر
+                // زر حجز المشوار عبر واتساب (الشاهين)
                 ElevatedButton.icon(
                   onPressed: _openWhatsApp,
                   icon: const Icon(Icons.chat, color: Colors.white),
                   label: const Text(
-                    'حجز مشوار عبر واتساب',
+                    'تواصل عبر واتساب (الشاهين)',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
