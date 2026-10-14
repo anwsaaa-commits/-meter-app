@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dartg:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -524,7 +524,6 @@ class _TaxiHomeState extends State<TaxiHome> {
       );
     }
 
-    // تصحيح استدعاء حزمة share_plus
     await Share.share(buffer.toString());
   }
 
@@ -564,7 +563,7 @@ class _TaxiHomeState extends State<TaxiHome> {
     final fmt = DateFormat('yyyy/MM/dd – HH:mm');
 
     return Directionality(
-      textDirection: TextDirection.RTL,
+      textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('تكسي الشاهين'),
