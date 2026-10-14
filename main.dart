@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const TaxiMeterApp());
@@ -32,7 +31,7 @@ class TaxiHomePage extends StatefulWidget {
 }
 
 class _TaxiHomePageState extends State<TaxiHomePage> {
-  // --- متغيرات التسعيرة ---
+  // --- متغيرات التسعيرة (مخفية عن الواجهة الرئيسية وموجودة بالإعدادات) ---
   double baseFare = 500.0;       // فتح الباب
   double farePerKm = 1000.0;     // سعر الكيلو
   double farePerMinute = 100.0;  // سعر دقيقة الانتظار
@@ -46,11 +45,12 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
 
   Timer? _tripTimer;
 
-  // --- متغيرات حاسبة أرباح الوقود ---
-  double fuelPricePerLiter = 1200.0;
-  double kmPerLiter = 10.0;
-  double dailyRevenue = 0.0;
+  // --- متغيرات حاسبة أرباح الوقود الخاصة بك ---
+  double fuelPricePerLiter = 1200.0; // سعر اللتر
+  double kmPerLiter = 10.0;          // معدل الاستهلاك (كم/لتر)
+  double dailyRevenue = 0.0;         // إجمالي الإيراد اليومي
 
+  // التحكم بالعداد
   void _toggleTrip() {
     setState(() {
       isTripActive = !isTripActive;
@@ -69,10 +69,11 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
       if (!isTripActive) return;
 
       setState(() {
-        currentSpeed = 40;
+        currentSpeed = 40; // سرعة افتراضية أثناء الحركة
         distanceKm += (currentSpeed / 3600);
         waitingSeconds++;
 
+        // حساب الأجرة الإجمالية شاملة فتح الباب والانتظار والمسافة
         totalFare = baseFare + (distanceKm * farePerKm) + ((waitingSeconds / 60) * farePerMinute);
       });
     });
@@ -96,18 +97,47 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     });
   }
 
-  // 🟢 دالة التحويل المباشر للواتساب برقمك الخاص
-  Future<void> _launchWhatsApp() async {
-    final Uri whatsappUri = Uri.parse("https://wa.me/967777521058?text=مرحباً%20كابتن%20أبو%20شاهين،%20أرغب%20بحجز%20مشوار.");
-    try {
-      if (await canLaunchUrl(whatsappUri)) {
-        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
-      } else {
-        await launchUrl(whatsappUri, mode: LaunchMode.platformDefault);
-      }
-    } catch (e) {
-      debugPrint("خطأ في فتح الواتساب: $e");
-    }
+  // نافذة الواتساب والتواصل المباشر
+  void _openWhatsAppDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.chat, color: Colors.greenAccent),
+            SizedBox(width: 8),
+            Text('حجز مشوار - الشاهين', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'للحجز والتواصل المباشر مع الكابتن أبو شاهين عبر الواتساب:\n\n📱 +967777521058',
+              style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 15),
+            SelectableText(
+              'https://wa.me/967777521058',
+              style: TextStyle(fontSize: 14, color: Colors.amber.shade300, decoration: TextDecoration.underline),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('حسناً', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   // 📊 شاشة حاسبة الأرباح واستهلاك الوقود الخاصة بك
@@ -515,10 +545,10 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                 ),
                 const SizedBox(height: 24),
 
-                // زر حجز عبر واتساب المباشر على الواجهة
+                // زر حجز عبر واتساب على الواجهة
                 ElevatedButton.icon(
-                  onPressed: _launchWhatsApp,
-                  icon: const Icon(Icons.chat, color: Colors.white),
+                  onPressed: _openWhatsAppDialog,
+                  icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
                   label: const Text(
                     'طلب مشوار عبر واتساب (الشاهين)',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
