@@ -31,32 +31,48 @@ class TaxiHomePage extends StatefulWidget {
 }
 
 class _TaxiHomePageState extends State<TaxiHomePage> {
-  // المتطلبات والأسعار
+  // متغيرات التسعيرة
   double baseFare = 500.0;       // فتح الباب
   double farePerKm = 1000.0;     // سعر الكيلو
   double farePerMinute = 100.0;  // سعر دقيقة الانتظار
-  
-  double totalFare = 500.0;      // الإجمالي
-  double distanceKm = 0.00;      // المسافة
-  int currentSpeed = 0;         // السرعة
-  bool isTripActive = false;     // حالة المشوار
 
-  // دالة فتح الواتساب مباشرة برقمك
+  // متغيرات المشوار والعداد
+  double totalFare = 500.0;
+  double distanceKm = 0.00;
+  int currentSpeed = 0;
+  bool isTripActive = false;
+
+  // فتح الواتساب الخاص بك
   Future<void> _openWhatsApp() async {
     final Uri whatsappUri = Uri.parse(
-        "https://wa.me/967777521058?text=مرحباً%20أبو%20شاهين،%20أرغب%20بحجز%20مشوار.");
+        "https://wa.me/967777521058?text=مرحباً%20كابتن%20أبو%20شاهين،%20أرغب%20بحجز%20مشوار.");
     try {
       if (await canLaunchUrl(whatsappUri)) {
         await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
-      } else {
-        await launchUrl(whatsappUri, mode: LaunchMode.platformDefault);
       }
     } catch (e) {
       debugPrint("خطأ في فتح الواتساب: $e");
     }
   }
 
-  // نافذة الإعدادات لتعديل التسعيرة
+  // بدء / إيقاف العداد
+  void _toggleTrip() {
+    setState(() {
+      isTripActive = !isTripActive;
+    });
+  }
+
+  // إعادة ضبط المشوار
+  void _resetTrip() {
+    setState(() {
+      isTripActive = false;
+      distanceKm = 0.0;
+      currentSpeed = 0;
+      totalFare = baseFare;
+    });
+  }
+
+  // نافذة الإعدادات لتعديل التسعيرة الكاملة
   void _showSettingsDialog() {
     TextEditingController baseController =
         TextEditingController(text: baseFare.toStringAsFixed(0));
@@ -69,6 +85,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('تعديل تسعيرة المشوار',
             style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(
@@ -78,6 +95,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
               TextField(
                 controller: baseController,
                 keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
                   labelText: 'سعر فتح الباب (ريال)',
                   labelStyle: TextStyle(color: Colors.white70),
@@ -87,6 +105,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
               TextField(
                 controller: kmController,
                 keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
                   labelText: 'سعر الكيلومتر (ريال)',
                   labelStyle: TextStyle(color: Colors.white70),
@@ -96,6 +115,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
               TextField(
                 controller: minController,
                 keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
                   labelText: 'سعر دقيقة الانتظار (ريال)',
                   labelStyle: TextStyle(color: Colors.white70),
@@ -110,7 +130,10 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
             child: const Text('إلغاء', style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: () {
               setState(() {
                 baseFare = double.tryParse(baseController.text) ?? baseFare;
@@ -122,26 +145,11 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
               });
               Navigator.pop(context);
             },
-            child: const Text('حفظ التعديل', style: TextStyle(color: Colors.black)),
+            child: const Text('حفظ التعديل', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
-  }
-
-  void _toggleTrip() {
-    setState(() {
-      isTripActive = !isTripActive;
-    });
-  }
-
-  void _resetTrip() {
-    setState(() {
-      isTripActive = false;
-      distanceKm = 0.0;
-      currentSpeed = 0;
-      totalFare = baseFare;
-    });
   }
 
   @override
@@ -161,8 +169,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                     const Expanded(
                       child: Text(
                         'عداد التاكسي الذكي - أبو شاهين',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -191,7 +198,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                       Text(
                         totalFare.toStringAsFixed(0),
                         style: const TextStyle(
-                            fontSize: 50,
+                            fontSize: 48,
                             fontWeight: FontWeight.bold,
                             color: Colors.amber),
                       ),
@@ -260,28 +267,28 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
-                // زر حجز المشوار عبر واتساب المباشر (بحواف مرتبة)
+                // زر حجز المشوار عبر واتساب المباشر
                 ElevatedButton.icon(
                   onPressed: _openWhatsApp,
                   icon: const Icon(Icons.chat, color: Colors.white),
                   label: const Text(
-                    'احجز مشوارك عبر واتساب',
+                    'حجز مشوار عبر واتساب',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
-                // أزرار التحكم بالمشوار (بدء/إيقاف وإعادة ضبط بحواف متناسقة)
+                // أزرار التحكم بالمشوار (بدء/إيقاف وإعادة ضبط)
                 Row(
                   children: [
                     Expanded(
@@ -292,12 +299,10 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                             color: Colors.white),
                         label: Text(
                           isTripActive ? 'إيقاف مؤقت' : 'بدء المشوار',
-                          style: const TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              isTripActive ? Colors.orange : Colors.teal,
+                          backgroundColor: isTripActive ? Colors.orange : Colors.teal,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
