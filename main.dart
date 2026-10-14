@@ -216,8 +216,7 @@ class _TaxiHomeState extends State<TaxiHome> {
   double get estimatedFare =>
       baseFare + tripKm * perKm + waitingMinutes * perMinute;
 
-  double get fuelEstimate =>
-      tripKm * consumption / 100 * fuelPrice;
+  double get fuelEstimate => tripKm * consumption / 100 * fuelPrice;
 
   double get revenue => trips.fold(0, (sum, t) => sum + t.fare);
 
@@ -261,11 +260,7 @@ class _TaxiHomeState extends State<TaxiHome> {
     }
 
     try {
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.best,
-        ),
-      );
+      final position = await Geolocator.getCurrentPosition();
 
       if (!mounted) return;
 
@@ -710,52 +705,4 @@ class _TaxiHomeState extends State<TaxiHome> {
                 _stat('عدد المشاوير', trips.length.toString(), Icons.alt_route),
                 _stat('الإيرادات', money(revenue), Icons.account_balance_wallet),
                 _stat('تكلفة الوقود', money(fuelTotal), Icons.local_gas_station),
-                _stat('المصاريف الأخرى', money(expensesTotal), Icons.receipt_long),
-                _stat('صافي الربح', money(netProfit), Icons.savings),
-              ],
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: _addExpense,
-              icon: const Icon(Icons.money_off),
-              label: const Text('إضافة مصروف جديد'),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'سجل المشاوير السابقة',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            trips.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Center(child: Text('لا توجد مشاوير محفوظة بعد')),
-                  )
-                : ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: trips.length,
-                    itemBuilder: (context, index) {
-                      final t = trips[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          title: Text('${t.from} ← ${t.to}'),
-                          subtitle: Text(
-                            '${fmt.format(t.startedAt)} | ${t.km.toStringAsFixed(2)} كم\n'
-                            'الأجرة: ${money(t.fare)} | الوقود: ${money(t.fuelCost)}',
-                          ),
-                          isThreeLine: true,
-                        ),
-                      );
-                    },
-                  ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+                _stat('المصاريف الأخرى', money(expense
