@@ -12,7 +12,7 @@ class TaxiMeterApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'عداد التاكسي الذكي - أبو شاهين',
+      title: 'عداد التاكسي - أبو شاهين',
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0F172A),
@@ -31,31 +31,25 @@ class TaxiHomePage extends StatefulWidget {
 }
 
 class _TaxiHomePageState extends State<TaxiHomePage> {
-  // --- متغيرات التسعيرة (مخفية عن الواجهة الرئيسية وموجودة بالإعدادات) ---
-  double baseFare = 500.0;       // فتح الباب
-  double farePerKm = 1000.0;     // سعر الكيلو
-  double farePerMinute = 100.0;  // سعر دقيقة الانتظار
+  double baseFare = 500.0;
+  double farePerKm = 1000.0;
+  double farePerMinute = 100.0;
 
-  // --- متغيرات العداد والمشوار ---
   double totalFare = 500.0;
   double distanceKm = 0.00;
   int currentSpeed = 0;
   int waitingSeconds = 0;
   bool isTripActive = false;
-
   Timer? _tripTimer;
 
-  // --- متغيرات حاسبة أرباح الوقود الخاصة بك ---
-  double fuelPricePerLiter = 1200.0; // سعر اللتر
-  double kmPerLiter = 10.0;          // معدل الاستهلاك (كم/لتر)
-  double dailyRevenue = 0.0;         // إجمالي الإيراد اليومي
+  double fuelPricePerLiter = 1200.0;
+  double kmPerLiter = 10.0;
+  double dailyRevenue = 0.0;
 
-  // التحكم بالعداد
   void _toggleTrip() {
     setState(() {
       isTripActive = !isTripActive;
     });
-
     if (isTripActive) {
       _startTimer();
     } else {
@@ -67,13 +61,10 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     _tripTimer?.cancel();
     _tripTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!isTripActive) return;
-
       setState(() {
-        currentSpeed = 40; // سرعة افتراضية أثناء الحركة
+        currentSpeed = 40;
         distanceKm += (currentSpeed / 3600);
         waitingSeconds++;
-
-        // حساب الأجرة الإجمالية شاملة فتح الباب والانتظار والمسافة
         totalFare = baseFare + (distanceKm * farePerKm) + ((waitingSeconds / 60) * farePerMinute);
       });
     });
@@ -97,7 +88,6 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     });
   }
 
-  // نافذة الواتساب والتواصل المباشر
   void _openWhatsAppDialog() {
     showDialog(
       context: context,
@@ -140,7 +130,6 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     );
   }
 
-  // 📊 شاشة حاسبة الأرباح واستهلاك الوقود الخاصة بك
   void _showProfitAndFuelCalculator() {
     TextEditingController fuelPriceCtrl = TextEditingController(text: fuelPricePerLiter.toStringAsFixed(0));
     TextEditingController kmPerLiterCtrl = TextEditingController(text: kmPerLiter.toStringAsFixed(1));
@@ -154,7 +143,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return StatefulWidget(
+        return StatefulBuilder(
           builder: (context, setModalState) {
             double totalKmDriven = distanceKm; 
             double fuelUsedLiters = totalKmDriven > 0 ? (totalKmDriven / kmPerLiter) : 0.0;
@@ -196,11 +185,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                             controller: fuelPriceCtrl,
                             keyboardType: TextInputType.number,
                             style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(
-                              labelText: 'سعر اللتر (ريال)',
-                              labelStyle: TextStyle(color: Colors.white60, fontSize: 12),
-                              border: OutlineInputBorder(),
-                            ),
+                            decoration: const InputDecoration(labelText: 'سعر اللتر (ريال)'),
                             onChanged: (val) {
                               setModalState(() {
                                 fuelPricePerLiter = double.tryParse(val) ?? fuelPricePerLiter;
@@ -214,11 +199,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                             controller: kmPerLiterCtrl,
                             keyboardType: TextInputType.number,
                             style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(
-                              labelText: 'استهلاك (كم/لتر)',
-                              labelStyle: TextStyle(color: Colors.white60, fontSize: 12),
-                              border: OutlineInputBorder(),
-                            ),
+                            decoration: const InputDecoration(labelText: 'استهلاك (كم/لتر)'),
                             onChanged: (val) {
                               setModalState(() {
                                 kmPerLiter = double.tryParse(val) ?? kmPerLiter;
@@ -233,11 +214,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                       controller: revenueCtrl,
                       keyboardType: TextInputType.number,
                       style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: 'إجمالي الدخل اليومي (ريال)',
-                        labelStyle: TextStyle(color: Colors.white60, fontSize: 13),
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'إجمالي الدخل اليومي (ريال)'),
                       onChanged: (val) {
                         setModalState(() {
                           dailyRevenue = double.tryParse(val) ?? dailyRevenue;
@@ -264,7 +241,6 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -280,19 +256,11 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: TextStyle(color: Colors.white70, fontSize: isBold ? 15 : 13)),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: isBold ? 18 : 14,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
+        Text(value, style: TextStyle(color: color, fontSize: isBold ? 18 : 14, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
       ],
     );
   }
 
-  // ⚙️ نافذة الإعدادات
   void _showSettingsDialog() {
     TextEditingController baseController = TextEditingController(text: baseFare.toStringAsFixed(0));
     TextEditingController kmController = TextEditingController(text: farePerKm.toStringAsFixed(0));
@@ -303,49 +271,19 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('إعدادات التسعيرة والتقرير',
-            style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+        title: const Text('إعدادات التسعيرة والتقرير', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: baseController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'سعر فتح الباب (ريال)',
-                  labelStyle: TextStyle(color: Colors.white70),
-                ),
-              ),
+              TextField(controller: baseController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر فتح الباب (ريال)')),
               const SizedBox(height: 10),
-              TextField(
-                controller: kmController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'سعر الكيلومتر (ريال)',
-                  labelStyle: TextStyle(color: Colors.white70),
-                ),
-              ),
+              TextField(controller: kmController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر الكيلومتر (ريال)')),
               const SizedBox(height: 10),
-              TextField(
-                controller: minController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'سعر دقيقة الانتظار (ريال)',
-                  labelStyle: TextStyle(color: Colors.white70),
-                ),
-              ),
+              TextField(controller: minController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر دقيقة الانتظار (ريال)')),
               const SizedBox(height: 20),
               ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 45),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, minimumSize: const Size(double.infinity, 45)),
                 onPressed: () {
                   Navigator.pop(context);
                   _showProfitAndFuelCalculator();
@@ -357,27 +295,19 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء', style: TextStyle(color: Colors.white54)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
             onPressed: () {
               setState(() {
                 baseFare = double.tryParse(baseController.text) ?? baseFare;
                 farePerKm = double.tryParse(kmController.text) ?? farePerKm;
                 farePerMinute = double.tryParse(minController.text) ?? farePerMinute;
-                if (!isTripActive && distanceKm == 0) {
-                  totalFare = baseFare;
-                }
+                if (!isTripActive && distanceKm == 0) totalFare = baseFare;
               });
               Navigator.pop(context);
             },
-            child: const Text('حفظ والتحديث', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            child: const Text('حفظ', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -400,112 +330,42 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // الشريط العلوي
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
-                      child: Text(
-                        'عداد التاكسي - أبو شاهين',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.settings, color: Colors.amber, size: 26),
-                        onPressed: _showSettingsDialog,
-                        tooltip: 'الإعدادات والتقرير',
-                      ),
-                    ),
+                    const Text('عداد التاكسي - أبو شاهين', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                    IconButton(icon: const Icon(Icons.settings, color: Colors.amber, size: 26), onPressed: _showSettingsDialog),
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // شاشة الأجرة الرئيسية
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: const Color(0xFF1E293B),
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(color: Colors.amber.shade400, width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.amber.withOpacity(0.15),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                      )
-                    ],
                   ),
                   child: Column(
                     children: [
-                      const Text(
-                        'أجرة المشوار الإجمالية',
-                        style: TextStyle(fontSize: 16, color: Colors.white70, letterSpacing: 0.5),
-                      ),
+                      const Text('أجرة المشوار الإجمالية', style: TextStyle(fontSize: 16, color: Colors.white70)),
                       const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            totalFare.toStringAsFixed(0),
-                            style: const TextStyle(
-                              fontSize: 56,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.amber,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'ريال',
-                            style: TextStyle(fontSize: 18, color: Colors.amberAccent),
-                          ),
-                        ],
-                      ),
+                      Text('${totalFare.toStringAsFixed(0)} ريال', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.amber)),
                     ],
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // بطاقات المسافة والسرعة الحالية
                 Row(
                   children: [
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white10),
-                        ),
+                        decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(16)),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Row(
-                              children: [
-                                Icon(Icons.map_outlined, color: Colors.tealAccent, size: 18),
-                                SizedBox(width: 6),
-                                Text('المسافة', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              '${distanceKm.toStringAsFixed(2)} كم',
-                              style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.tealAccent),
-                            ),
+                            const Text('المسافة', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                            const SizedBox(height: 8),
+                            Text('${distanceKm.toStringAsFixed(2)} كم', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
                           ],
                         ),
                       ),
@@ -513,30 +373,14 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                     const SizedBox(width: 14),
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white10),
-                        ),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(16)),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Row(
-                              children: [
-                                Icon(Icons.speed, color: Colors.tealAccent, size: 18),
-                                SizedBox(width: 6),
-                                Text('السرعة الحالية', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              '$currentSpeed كم/س',
-                              style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.tealAccent),
-                            ),
+                            const Text('السرعة الحالية', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                            const SizedBox(height: 8),
+                            Text('$currentSpeed كم/س', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
                           ],
                         ),
                       ),
@@ -544,65 +388,38 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                   ],
                 ),
                 const SizedBox(height: 24),
-
-                // زر حجز عبر واتساب على الواجهة
                 ElevatedButton.icon(
                   onPressed: _openWhatsAppDialog,
-                  icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-                  label: const Text(
-                    'طلب مشوار عبر واتساب (الشاهين)',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  icon: const Icon(Icons.chat, color: Colors.white),
+                  label: const Text('طلب مشوار عبر واتساب (الشاهين)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF16A34A),
-                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                 ),
                 const SizedBox(height: 14),
-
-                // أزرار التحكم بالمشوار (بدء/إيقاف وإعادة الضبط)
                 Row(
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: _toggleTrip,
-                        icon: Icon(
-                          isTripActive ? Icons.pause_circle_filled : Icons.play_circle_fill,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                        label: Text(
-                          isTripActive ? 'إيقاف مؤقت' : 'بدء المشوار',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
+                        icon: Icon(isTripActive ? Icons.pause : Icons.play_arrow, color: Colors.white),
+                        label: Text(isTripActive ? 'إيقاف مؤقت' : 'بدء المشوار', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isTripActive ? Colors.orange.shade700 : Colors.teal.shade600,
-                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
-                      ),
+                      decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(16)),
                       child: IconButton(
                         onPressed: _resetTrip,
-                        icon: const Icon(Icons.refresh_rounded, color: Colors.redAccent, size: 28),
+                        icon: const Icon(Icons.refresh, color: Colors.redAccent, size: 28),
                         padding: const EdgeInsets.all(14),
-                        tooltip: 'إعادة ضبط المشوار',
                       ),
                     ),
                   ],
