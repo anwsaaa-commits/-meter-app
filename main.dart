@@ -1,394 +1,758 @@
+Dart
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const TaxiApp());
+}
+
+const phone = '+967777521058';
+const waPhone = '967777521058';
+
+class Trip {
+  final String id, from, to;
+  final DateTime startedAt, endedAt;
+  final double km, fare, fuelCost, waitingMinutes;
+
+  Trip({
+    required this.id,
+    required this.from,
+    required this.to,
+    required this.startedAt,
+    required this.endedAt,
+    required this.km,
+    required this.fare,
+    required this.fuelCost,
+    required this.waitingMinutes,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'from': from,
+    'to': to,
+    'startedAt': startedAt.toIso8601String(),
+    'endedAt': endedAt.toIso8601String(),
+    'km': km,
+    'fare': fare,
+    'fuelCost': fuelCost,
+    'waitingMinutes': waitingMinutes,
+  };
+
+  factory Trip.fromJson(Map<String, dynamic> j) => Trip(
+    id: j['id'] ?? '',
+    from: j['from'] ?? '',
+    to: j['to'] ?? '',
+    startedAt: DateTime.parse(j['startedAt']),
+    endedAt: DateTime.parse(j['endedAt']),
+    km: (j['km'] as num).toDouble(),
+    fare: (j['fare'] as num).toDouble(),
+    fuelCost: (j['fuelCost'] as num).toDouble(),
+    waitingMinutes: ((j['waitingMinutes'] ?? 0) as num).toDouble(),
+  );
+}
+
+class Expense {
+  final String title;
+  final double amount;
+  final DateTime date;
+
+  Expense(this.title, this.amount, this.date);
+
+  Map<String, dynamic> toJson() => {
+    'title': title,
+    'amount': amount,
+    'date': date.toIso8601String(),
+  };
+
+  factory Expense.fromJson(Map<String, dynamic> j) => Expense(
+    j['title'] ?? '',
+    (j['amount'] as num).toDouble(),
+    DateTime.parse(j['date']),
+  );
 }
 
 class TaxiApp extends StatelessWidget {
   const TaxiApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'سجل المشاوير - أبو شاهين',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.amber,
-        scaffoldBackgroundColor: const Color(0xFFF4F5F7),
-        fontFamily: 'sans-serif',
+  Widget build(BuildContext context) => MaterialApp(
+    title: 'تكسي الشاهين',
+    debugShowCheckedModeBanner: false,
+    theme: ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xff087f5b),
       ),
-      home: const MainNavigationScreen(),
-    );
-  }
+      useMaterial3: true,
+      fontFamily: 'Arial',
+    ),
+    home: const TaxiHome(),
+  );
 }
 
-// شاشة التنقل السفلية لتضمين (السجل، العداد، كشف الحساب، الإعدادات)
-class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+class TaxiHome extends StatefulWidget {
+  const TaxiHome({super.key});
 
   @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  State<TaxiHome> createState() => _TaxiHomeState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
+class _TaxiHomeState extends State<TaxiHome> {
+  SharedPreferences? prefs;
 
-  final List<Map<String, String>> _trips = [];
-  String _defaultPhone = "967700000000";
+  double baseFare = 500;
+  double perKm = 200;
+  double perMinute = 50;
+  double fuelPrice = 1550;
+  double consumption = 10;
 
-  void _addTrip(Map<String, String> trip) {
-    setState(() {
-      _trips.insert(0, trip);
-    });
-  }
+  List<Trip> trips = [];
+  List<Expense> expenses = [];
 
-  @override
-  Widget build(BuildContext context) {
-    final List<Widget> screens = [
-      HomeScreen(trips: _trips, defaultPhone: _defaultPhone),
-      MeterScreen(onTripCompleted: _addTrip, defaultPhone: _defaultPhone),
-      StatementScreen(trips: _trips),
-      SettingsScreen(
-        defaultPhone: _defaultPhone,
-        onPhoneChanged: (newPhone) {
-          setState(() {
-            _defaultPhone = newPhone;
-          });
-        },
-      ),
-    ];
+  bool running = false;
+  Position? lastPosition;
+  StreamSubscription<Position>? gpsSub;
+  DateTime? startedAt;
 
-    return Scaffold(
-      body: screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: Colors.amber[800],
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'السجل'),
-          BottomNavigationBarItem(icon: Icon(Icons.timer), label: 'العداد'),
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'كشف الحساب'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'الإعدادات'),
-        ],
-      ),
-    );
-  }
-}
+  double tripKm = 0;
+  double waitingMinutes = 0;
+  String gpsMessage = 'الموقع غير مفعّل';
 
-// 1. شاشة السجل الرئيسية
-class HomeScreen extends StatelessWidget {
-  final List<Map<String, String>> trips;
-  final String defaultPhone;
-
-  const HomeScreen({super.key, required this.trips, required this.defaultPhone});
-
-  Future<void> _makeCall(String phoneNumber) async {
-    final Uri url = Uri.parse('tel:$phoneNumber');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    }
-  }
-
-  Future<void> _openWhatsApp(String phoneNumber) async {
-    final cleanPhone = phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
-    final Uri url = Uri.parse('https://wa.me/$cleanPhone');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.local_taxi, color: Colors.black, size: 28),
-            SizedBox(width: 8),
-            Text(
-              'سجل المشاوير',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-            ),
-          ],
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.amber,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.chat, color: Colors.green),
-            onPressed: () => _openWhatsApp(defaultPhone),
-          ),
-          IconButton(
-            icon: const Icon(Icons.phone, color: Colors.black),
-            onPressed: () => _makeCall(defaultPhone),
-          ),
-        ],
-      ),
-      body: trips.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.local_taxi, size: 80, color: Colors.amber),
-                  SizedBox(height: 16),
-                  Text('لا يوجد مشاوير مسجلة بعد', style: TextStyle(fontSize: 18, color: Colors.grey)),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: trips.length,
-              itemBuilder: (ctx, index) {
-                final trip = trips[index];
-                return Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  margin: const EdgeInsets.symmetric(vertical: 6),
-                  child: ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Colors.amber,
-                      child: Icon(Icons.local_taxi, color: Colors.black),
-                    ),
-                    title: Text(trip['destination']!, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('${trip['date']}\nالأجرة: ${trip['fare']} ريال'),
-                    isThreeLine: true,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.chat, color: Colors.green),
-                          onPressed: () => _openWhatsApp(trip['phone'] ?? defaultPhone),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.phone, color: Colors.blue),
-                          onPressed: () => _makeCall(trip['phone'] ?? defaultPhone),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-    );
-  }
-}
-
-// 2. شاشة العداد لحساب التكلفة
-class MeterScreen extends StatefulWidget {
-  final Function(Map<String, String>) onTripCompleted;
-  final String defaultPhone;
-
-  const MeterScreen({super.key, required this.onTripCompleted, required this.defaultPhone});
-
-  @override
-  State<MeterScreen> createState() => _MeterScreenState();
-}
-
-class _MeterScreenState extends State<MeterScreen> {
-  final _destinationController = TextEditingController();
-  final _fareController = TextEditingController();
-
-  void _saveCurrentTrip() {
-    if (_destinationController.text.isEmpty || _fareController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('الرجاء إدخال الوجهة والسعر')),
-      );
-      return;
-    }
-
-    widget.onTripCompleted({
-      'destination': _destinationController.text,
-      'fare': _fareController.text,
-      'phone': widget.defaultPhone,
-      'date': DateTime.now().toString().substring(0, 16),
-    });
-
-    _destinationController.clear();
-    _fareController.clear();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم حفظ المشوار بنجاح في السجل')),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('عداد المشوار', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.amber,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            const SizedBox(height: 20),
-            TextField(
-              controller: _destinationController,
-              decoration: InputDecoration(
-                labelText: 'اسم الوجهة أو المكان',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              textAlign: TextAlign.right,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _fareController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'قيمة الأجرة (ريال)',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              textAlign: TextAlign.right,
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: _saveCurrentTrip,
-              icon: const Icon(Icons.save, color: Colors.black),
-              label: const Text('حفظ وتسجيل الرحلة', style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// 3. شاشة كشف الحساب والأرباح
-class StatementScreen extends StatelessWidget {
-  final List<Map<String, String>> trips;
-
-  const StatementScreen({super.key, required this.trips});
-
-  @override
-  Widget build(BuildContext context) {
-    double totalRevenue = 0;
-    for (var trip in trips) {
-      totalRevenue += double.tryParse(trip['fare'] ?? '0') ?? 0;
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('كشف الحساب والأرباح', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.amber,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              color: Colors.amber[50],
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  children: [
-                    const Text('إجمالي الأرباح الكلية', style: TextStyle(fontSize: 16, color: Colors.grey)),
-                    const SizedBox(height: 8),
-                    Text('$totalRevenue ريال', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green)),
-                    const Divider(height: 24),
-                    Text('عدد المشاوير المسجلة: ${trips.length}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Align(
-              alignment: Alignment.centerRight,
-              child: Text('ملخص الحركات الأخيرة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: trips.isEmpty
-                  ? const Center(child: Text('لا توجد بيانات للعرض'))
-                  : ListView.builder(
-                      itemCount: trips.length,
-                      itemBuilder: (context, index) {
-                        final trip = trips[index];
-                        return ListTile(
-                          title: Text(trip['destination']!),
-                          subtitle: Text(trip['date']!),
-                          trailing: Text('${trip['fare']} ريال', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// 4. شاشة الإعدادات
-class SettingsScreen extends StatefulWidget {
-  final String defaultPhone;
-  final Function(String) onPhoneChanged;
-
-  const SettingsScreen({super.key, required this.defaultPhone, required this.onPhoneChanged});
-
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  late TextEditingController _phoneController;
+  final fromController = TextEditingController();
+  final toController = TextEditingController();
+  final waitController = TextEditingController(text: '0');
+  final expenseTitle = TextEditingController();
+  final expenseAmount = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _phoneController = TextEditingController(text: widget.defaultPhone);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    gpsSub?.cancel();
+    fromController.dispose();
+    toController.dispose();
+    waitController.dispose();
+    expenseTitle.dispose();
+    expenseAmount.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    prefs = await SharedPreferences.getInstance();
+
+    final loadedTrips = (jsonDecode(
+      prefs!.getString('trips') ?? '[]',
+    ) as List)
+        .map((e) => Trip.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+
+    final loadedExpenses = (jsonDecode(
+      prefs!.getString('expenses') ?? '[]',
+    ) as List)
+        .map((e) => Expense.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+
+    if (!mounted) return;
+
+    setState(() {
+      baseFare = prefs!.getDouble('baseFare') ?? 500;
+      perKm = prefs!.getDouble('perKm') ?? 200;
+      perMinute = prefs!.getDouble('perMinute') ?? 50;
+      fuelPrice = prefs!.getDouble('fuelPrice') ?? 1550;
+      consumption = prefs!.getDouble('consumption') ?? 10;
+      trips = loadedTrips;
+      expenses = loadedExpenses;
+    });
+  }
+
+  Future<void> _save() async {
+    prefs ??= await SharedPreferences.getInstance();
+
+    await prefs!.setDouble('baseFare', baseFare);
+    await prefs!.setDouble('perKm', perKm);
+    await prefs!.setDouble('perMinute', perMinute);
+    await prefs!.setDouble('fuelPrice', fuelPrice);
+    await prefs!.setDouble('consumption', consumption);
+
+    await prefs!.setString(
+      'trips',
+      jsonEncode(trips.map((e) => e.toJson()).toList()),
+    );
+
+    await prefs!.setString(
+      'expenses',
+      jsonEncode(expenses.map((e) => e.toJson()).toList()),
+    );
+  }
+
+  double get estimatedFare =>
+      baseFare + tripKm * perKm + waitingMinutes * perMinute;
+
+  double get fuelEstimate =>
+      tripKm * consumption / 100 * fuelPrice;
+
+  double get revenue =>
+      trips.fold(0, (sum, t) => sum + t.fare);
+
+  double get fuelTotal =>
+      trips.fold(0, (sum, t) => sum + t.fuelCost);
+
+  double get expensesTotal =>
+      expenses.fold(0, (sum, e) => sum + e.amount);
+
+  double get netProfit =>
+      revenue - fuelTotal - expensesTotal;
+
+  Future<void> _startTrip() async {
+    if (fromController.text.trim().isEmpty) {
+      _snack('اكتب منطقة الانطلاق أولاً');
+      return;
+    }
+
+    final enabled = await Geolocator.isLocationServiceEnabled();
+
+    if (!enabled) {
+      _snack('فعّل خدمة الموقع GPS من إعدادات الهاتف');
+      await Geolocator.openLocationSettings();
+      return;
+    }
+
+    var permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      _snack('يجب السماح للتطبيق باستخدام الموقع');
+
+      if (permission == LocationPermission.deniedForever) {
+        await Geolocator.openAppSettings();
+      }
+
+      return;
+    }
+
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.best,
+        ),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        lastPosition = position;
+        tripKm = 0;
+        waitingMinutes = double.tryParse(waitController.text) ?? 0;
+        startedAt = DateTime.now();
+        running = true;
+        gpsMessage = 'GPS يعمل';
+      });
+
+      gpsSub = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 5,
+        ),
+      ).listen(
+        (position) {
+          if (!running) return;
+
+          final previous = lastPosition;
+
+          if (previous != null) {
+            final meters = Geolocator.distanceBetween(
+              previous.latitude,
+              previous.longitude,
+              position.latitude,
+              position.longitude,
+            );
+
+            if (meters > 0 && meters < 1000 && mounted) {
+              setState(() {
+                tripKm += meters / 1000;
+              });
+            }
+          }
+
+          lastPosition = position;
+        },
+        onError: (_) {
+          if (mounted) {
+            setState(() => gpsMessage = 'تعذر تحديث GPS');
+          }
+        },
+      );
+    } catch (_) {
+      _snack('تعذر الحصول على الموقع. تحقق من GPS والأذونات.');
+    }
+  }
+
+  Future<void> _finishTrip() async {
+    if (!running || startedAt == null) return;
+
+    await gpsSub?.cancel();
+    gpsSub = null;
+
+    final now = DateTime.now();
+
+    final trip = Trip(
+      id: now.microsecondsSinceEpoch.toString(),
+      from: fromController.text.trim(),
+      to: toController.text.trim().isEmpty
+          ? 'غير محددة'
+          : toController.text.trim(),
+      startedAt: startedAt!,
+      endedAt: now,
+      km: tripKm,
+      fare: estimatedFare,
+      fuelCost: fuelEstimate,
+      waitingMinutes: waitingMinutes,
+    );
+
+    setState(() {
+      trips.insert(0, trip);
+      running = false;
+      gpsMessage = 'انتهى المشوار';
+    });
+
+    await _save();
+    _snack('تم حفظ المشوار');
+  }
+
+  Future<void> _call() async {
+    final uri = Uri.parse('tel:$phone');
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      _snack('تعذر فتح الاتصال');
+    }
+  }
+
+  Future<void> _whatsapp() async {
+    final uri = Uri.parse(
+      'https://wa.me/$waPhone?text=${Uri.encodeComponent('السلام عليكم، أريد الاستفسار عن تكسي الشاهين')}',
+    );
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      _snack('تعذر فتح واتساب');
+    }
+  }
+
+  void _snack(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  String money(num value) => '${value.toStringAsFixed(0)} ريال';
+
+  Future<void> _settings() async {
+    final b = TextEditingController(text: baseFare.toStringAsFixed(0));
+    final k = TextEditingController(text: perKm.toStringAsFixed(0));
+    final m = TextEditingController(text: perMinute.toStringAsFixed(0));
+    final f = TextEditingController(text: fuelPrice.toStringAsFixed(0));
+    final c = TextEditingController(text: consumption.toStringAsFixed(1));
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('إعدادات التسعير والوقود'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _field(b, 'أجرة البداية (ريال)'),
+              _field(k, 'سعر الكيلومتر (ريال)'),
+              _field(m, 'سعر دقيقة الانتظار (ريال)'),
+              _field(f, 'سعر لتر الوقود (ريال)'),
+              _field(c, 'الاستهلاك لكل 100 كم (لتر)'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      setState(() {
+        baseFare = double.tryParse(b.text) ?? baseFare;
+        perKm = double.tryParse(k.text) ?? perKm;
+        perMinute = double.tryParse(m.text) ?? perMinute;
+        fuelPrice = double.tryParse(f.text) ?? fuelPrice;
+        consumption = double.tryParse(c.text) ?? consumption;
+      });
+
+      await _save();
+    }
+
+    b.dispose();
+    k.dispose();
+    m.dispose();
+    f.dispose();
+    c.dispose();
+  }
+
+  Widget _field(TextEditingController controller, String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addExpense() async {
+    expenseTitle.clear();
+    expenseAmount.clear();
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('إضافة مصروف'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _field(expenseTitle, 'نوع المصروف'),
+            _field(expenseAmount, 'المبلغ بالريال'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+
+    final amount = double.tryParse(expenseAmount.text);
+
+    if (ok == true && amount != null && amount > 0) {
+      setState(() {
+        expenses.insert(
+          0,
+          Expense(
+            expenseTitle.text.trim().isEmpty
+                ? 'مصروف'
+                : expenseTitle.text.trim(),
+            amount,
+            DateTime.now(),
+          ),
+        );
+      });
+
+      await _save();
+    }
+  }
+
+  Future<void> _shareReport() async {
+    final fmt = DateFormat('yyyy-MM-dd HH:mm');
+    final buffer = StringBuffer('كشف حساب تكسي الشاهين\n');
+
+    buffer.writeln('عدد المشاوير: ${trips.length}');
+    buffer.writeln('الإيرادات: ${money(revenue)}');
+    buffer.writeln('تكلفة الوقود التقديرية: ${money(fuelTotal)}');
+    buffer.writeln('المصاريف الأخرى: ${money(expensesTotal)}');
+    buffer.writeln('صافي الربح التقديري: ${money(netProfit)}\n');
+
+    for (final trip in trips) {
+      buffer.writeln(
+        '${fmt.format(trip.startedAt)} | ${trip.from} ← ${trip.to} | '
+        '${trip.km.toStringAsFixed(2)} كم | ${money(trip.fare)} | '
+        'وقود ${money(trip.fuelCost)}',
+      );
+    }
+
+    await Share.share(
+      buffer.toString(),
+      subject: 'كشف حساب تكسي الشاهين',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('إعدادات التطبيق', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.amber,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: 'رقم الهاتف الأساسي (للاتصال والواتساب)',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              textAlign: TextAlign.right,
+    final fmt = DateFormat('yyyy/MM/dd – HH:mm');
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('تكسي الشاهين'),
+          actions: [
+            IconButton(
+              tooltip: 'الإعدادات',
+              onPressed: _settings,
+              icon: const Icon(Icons.settings),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            IconButton(
+              tooltip: 'كشف الحساب',
+              onPressed: _shareReport,
+              icon: const Icon(Icons.ios_share),
+            ),
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Card(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const Text(
+                      'أجرة المشوار الحالية',
+                      style: TextStyle(fontSize: 17),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      money(estimatedFare),
+                      style: const TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'المسافة: ${tripKm.toStringAsFixed(2)} كم'
+                      ' • الوقود التقديري: ${money(fuelEstimate)}',
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          running ? Icons.gps_fixed : Icons.gps_not_fixed,
+                          color: running ? Colors.green : Colors.grey,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(gpsMessage),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              onPressed: () {
-                widget.onPhoneChanged(_phoneController.text);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('تم حفظ الإعدادات بنجاح')),
-                );
-              },
-              child: const Text('حفظ التعديلات', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: fromController,
+              decoration: const InputDecoration(
+                labelText: 'منطقة الانطلاق',
+                prefixIcon: Icon(Icons.trip_origin),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: toController,
+              decoration: const InputDecoration(
+                labelText: 'منطقة الوصول',
+                prefixIcon: Icon(Icons.place),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: waitController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'دقائق الانتظار',
+                prefixIcon: Icon(Icons.timer),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: running ? null : _startTrip,
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('بدء المشوار'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    onPressed: running ? _finishTrip : null,
+                    icon: const Icon(Icons.stop),
+                    label: const Text('إنهاء وحفظ'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _call,
+                    icon: const Icon(Icons.call),
+                    label: const Text('اتصال'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _whatsapp,
+                    icon: const Icon(Icons.chat),
+                    label: const Text('واتساب'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'ملخص الحساب المحفوظ',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              childAspectRatio: 1.7,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              children: [
+                _stat('المشاوير', '${trips.length}', Icons.local_taxi),
+                _stat('الإيرادات', money(revenue), Icons.payments),
+                _stat('تكلفة الوقود', money(fuelTotal), Icons.local_gas_station),
+                _stat('المصاريف الأخرى', money(expensesTotal), Icons.receipt_long),
+                _stat('صافي الربح التقديري', money(netProfit), Icons.account_balance_wallet),
+              ],
+            ),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'المصاريف الأخرى',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _addExpense,
+                  icon: const Icon(Icons.add),
+                  label: const Text('إضافة مصروف'),
+                ),
+              ],
+            ),
+            ...expenses.take(5).map(
+              (expense) => ListTile(
+                leading: const Icon(Icons.receipt),
+                title: Text(expense.title),
+                subtitle: Text(fmt.format(expense.date)),
+                trailing: Text(money(expense.amount)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'سجل المشاوير',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            if (trips.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('لا توجد مشاوير محفوظة بعد'),
+              ),
+            ...trips.take(50).map(
+              (trip) => Card(
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.local_taxi),
+                  ),
+                  title: Text('${trip.from} ← ${trip.to}'),
+                  subtitle: Text(
+                    '${fmt.format(trip.startedAt)}\n'
+                    '${trip.km.toStringAsFixed(2)} كم • '
+                    'وقود ${money(trip.fuelCost)}',
+                  ),
+                  isThreeLine: true,
+                  trailing: Text(
+                    money(trip.fare),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _shareReport,
+              icon: const Icon(Icons.share),
+              label: const Text('مشاركة كشف الحساب الكامل'),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'ملاحظة: حساب الوقود تقديري حسب استهلاك السيارة المدخل. '
+              'صافي الربح لا يشمل إلا المصاريف التي تسجلها. '
+              'البيانات محفوظة محليًا على هذا الهاتف.',
+              style: TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _stat(String label, String value, IconData icon) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
             ),
           ],
         ),
