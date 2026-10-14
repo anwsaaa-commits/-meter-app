@@ -15,7 +15,7 @@ dependencies:
   path: ^1.8.3
   intl: ^0.18.1
   cupertino_icons: ^1.0.6
-
+  url_launcher: ^6.2.4
 dev_dependencies:
   flutter_test:
     sdk: flutter
