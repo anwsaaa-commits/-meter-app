@@ -32,7 +32,7 @@ class TaxiHomePage extends StatefulWidget {
 
 class _TaxiHomePageState extends State<TaxiHomePage> {
   double baseFare = 500.0;
-  double farePerKm = 1000.0;
+  double farePerKm = 450.0; // السعر المعدل
   double farePerMinute = 100.0;
 
   double totalFare = 500.0;
@@ -88,6 +88,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     });
   }
 
+  // نافذة التواصل المباشر المعدلة بدون أي خروج عن الحواف
   void _openWhatsAppDialog() {
     showDialog(
       context: context,
@@ -96,34 +97,73 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.chat, color: Colors.greenAccent),
+            Icon(Icons.chat, color: Colors.greenAccent, size: 22),
             SizedBox(width: 8),
-            Text('حجز مشوار - الشاهين', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+            Expanded(
+              child: Text(
+                'حجز مشوار - الشاهين',
+                style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'للحجز والتواصل المباشر مع الكابتن أبو شاهين عبر الواتساب:\n\n📱 +967777521058',
-              style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
+              'للحجز والتواصل المباشر مع الكابتن أبو شاهين عبر الواتساب أو الاتصال:',
+              style: TextStyle(fontSize: 14, color: Colors.white70, height: 1.4),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 15),
-            SelectableText(
-              'https://wa.me/967777521058',
-              style: TextStyle(fontSize: 14, color: Colors.amber.shade300, decoration: TextDecoration.underline),
+            const SizedBox(height: 16),
+
+            // زر الاتصال المباشر
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                // فتح رقم الاتصال المباشر
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('رقم الكابتن أبو شاهين: 967777521058+')),
+                );
+              },
+              icon: const Icon(Icons.phone, color: Colors.white, size: 20),
+              label: const Text(
+                'اتصال: 967777521058+',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // زر الواتساب المباشر
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF16A34A),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('رابط الواتساب: wa.me/967777521058')),
+                );
+              },
+              icon: const Icon(Icons.chat_bubble, color: Colors.white, size: 20),
+              label: const Text(
+                'واتساب مباشر',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+              ),
             ),
           ],
         ),
         actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+          TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('حسناً', style: TextStyle(color: Colors.white)),
+            child: const Text('إغلاق', style: TextStyle(color: Colors.white54)),
           ),
         ],
       ),
@@ -155,8 +195,8 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom + 20,
                 top: 20,
-                left: 20,
-                right: 20,
+                left: 16,
+                right: 16,
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -166,9 +206,12 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          '📊 كشف الأرباح واستهلاك الوقود',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber),
+                        const Expanded(
+                          child: Text(
+                            '📊 كشف الأرباح واستهلاك الوقود',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.amber),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close, color: Colors.white54),
@@ -184,8 +227,8 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                           child: TextField(
                             controller: fuelPriceCtrl,
                             keyboardType: TextInputType.number,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(labelText: 'سعر اللتر (ريال)'),
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: const InputDecoration(labelText: 'سعر اللتر (ريال)', labelStyle: TextStyle(fontSize: 11)),
                             onChanged: (val) {
                               setModalState(() {
                                 fuelPricePerLiter = double.tryParse(val) ?? fuelPricePerLiter;
@@ -198,8 +241,8 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                           child: TextField(
                             controller: kmPerLiterCtrl,
                             keyboardType: TextInputType.number,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(labelText: 'استهلاك (كم/لتر)'),
+                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            decoration: const InputDecoration(labelText: 'استهلاك (كم/لتر)', labelStyle: TextStyle(fontSize: 11)),
                             onChanged: (val) {
                               setModalState(() {
                                 kmPerLiter = double.tryParse(val) ?? kmPerLiter;
@@ -213,8 +256,8 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                     TextField(
                       controller: revenueCtrl,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(labelText: 'إجمالي الدخل اليومي (ريال)'),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: const InputDecoration(labelText: 'إجمالي الدخل اليومي (ريال)', labelStyle: TextStyle(fontSize: 12)),
                       onChanged: (val) {
                         setModalState(() {
                           dailyRevenue = double.tryParse(val) ?? dailyRevenue;
@@ -223,7 +266,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                     ),
                     const SizedBox(height: 16),
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: const Color(0xFF0F172A),
                         borderRadius: BorderRadius.circular(16),
@@ -255,8 +298,8 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: TextStyle(color: Colors.white70, fontSize: isBold ? 15 : 13)),
-        Text(value, style: TextStyle(color: color, fontSize: isBold ? 18 : 14, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+        Text(title, style: TextStyle(color: Colors.white70, fontSize: isBold ? 14 : 12)),
+        Text(value, style: TextStyle(color: color, fontSize: isBold ? 16 : 13, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
       ],
     );
   }
@@ -333,7 +376,13 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('عداد التاكسي - أبو شاهين', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const Expanded(
+                      child: Text(
+                        'عداد التاكسي - أبو شاهين',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     IconButton(icon: const Icon(Icons.settings, color: Colors.amber, size: 26), onPressed: _showSettingsDialog),
                   ],
                 ),
@@ -391,7 +440,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                 ElevatedButton.icon(
                   onPressed: _openWhatsAppDialog,
                   icon: const Icon(Icons.chat, color: Colors.white),
-                  label: const Text('طلب مشوار عبر واتساب (الشاهين)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  label: const Text('طلب مشوار عبر واتساب (الشاهين)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF16A34A),
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -405,7 +454,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                       child: ElevatedButton.icon(
                         onPressed: _toggleTrip,
                         icon: Icon(isTripActive ? Icons.pause : Icons.play_arrow, color: Colors.white),
-                        label: Text(isTripActive ? 'إيقاف مؤقت' : 'بدء المشوار', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        label: Text(isTripActive ? 'إيقاف مؤقت' : 'بدء المشوار', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isTripActive ? Colors.orange.shade700 : Colors.teal.shade600,
                           padding: const EdgeInsets.symmetric(vertical: 16),
