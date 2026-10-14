@@ -1,5 +1,3 @@
-Dart
-
 import 'dart:async';
 import 'dart:convert';
 
@@ -62,8 +60,7 @@ class Trip {
         km: (j['km'] as num).toDouble(),
         fare: (j['fare'] as num).toDouble(),
         fuelCost: (j['fuelCost'] as num).toDouble(),
-        waitingMinutes:
-            ((j['waitingMinutes'] ?? 0) as num).toDouble(),
+        waitingMinutes: ((j['waitingMinutes'] ?? 0) as num).toDouble(),
       );
 }
 
@@ -105,7 +102,7 @@ class TaxiApp extends StatelessWidget {
       home: const TaxiHome(),
     );
   }
-  Dart
+}
 
 class TaxiHome extends StatefulWidget {
   const TaxiHome({super.key});
@@ -222,17 +219,13 @@ class _TaxiHomeState extends State<TaxiHome> {
   double get fuelEstimate =>
       tripKm * consumption / 100 * fuelPrice;
 
-  double get revenue =>
-      trips.fold(0, (sum, t) => sum + t.fare);
+  double get revenue => trips.fold(0, (sum, t) => sum + t.fare);
 
-  double get fuelTotal =>
-      trips.fold(0, (sum, t) => sum + t.fuelCost);
+  double get fuelTotal => trips.fold(0, (sum, t) => sum + t.fuelCost);
 
-  double get expensesTotal =>
-      expenses.fold(0, (sum, e) => sum + e.amount);
+  double get expensesTotal => expenses.fold(0, (sum, e) => sum + e.amount);
 
-  double get netProfit =>
-      revenue - fuelTotal - expensesTotal;
+  double get netProfit => revenue - fuelTotal - expensesTotal;
 
   Future<void> _startTrip() async {
     if (running) return;
@@ -279,8 +272,7 @@ class _TaxiHomeState extends State<TaxiHome> {
       setState(() {
         lastPosition = position;
         tripKm = 0;
-        waitingMinutes =
-            double.tryParse(waitController.text) ?? 0;
+        waitingMinutes = double.tryParse(waitController.text) ?? 0;
         startedAt = DateTime.now();
         running = true;
         gpsMessage = 'GPS يعمل';
@@ -393,11 +385,7 @@ class _TaxiHomeState extends State<TaxiHome> {
     );
   }
 
-  String money(num value) =>
-      '${value.toStringAsFixed(0)} ريال';
-  
-}
-Dart
+  String money(num value) => '${value.toStringAsFixed(0)} ريال';
 
   Future<void> _settings() async {
     final b = TextEditingController(text: baseFare.toStringAsFixed(0));
@@ -520,7 +508,7 @@ Dart
 
   Future<void> _shareReport() async {
     final fmt = DateFormat('yyyy-MM-dd HH:mm');
-    final buffer = StringBuffer('كشف حساب تكسي الشاهين\n');
+    final buffer = StringBuffer('كشف حساب تكسي الشاهين\n\n');
 
     buffer.writeln('عدد المشاوير: ${trips.length}');
     buffer.writeln('الإيرادات: ${money(revenue)}');
@@ -536,12 +524,8 @@ Dart
       );
     }
 
-    await SharePlus.instance.share(
-      ShareParams(
-        text: buffer.toString(),
-        subject: 'كشف حساب تكسي الشاهين',
-      ),
-    );
+    // تصحيح استدعاء حزمة share_plus
+    await Share.share(buffer.toString());
   }
 
   Widget _stat(String title, String value, IconData icon) {
@@ -574,7 +558,6 @@ Dart
       ),
     );
   }
-  Dart
 
   @override
   Widget build(BuildContext context) {
@@ -725,85 +708,52 @@ Dart
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
               children: [
-                _stat('المشاوير', '${trips.length}', Icons.local_taxi),
-                _stat('الإيرادات', money(revenue), Icons.payments),
-                _stat(
-                  'تكلفة الوقود',
-                  money(fuelTotal),
-                  Icons.local_gas_station,
-                ),
-                _stat(
-                  'المصاريف الأخرى',
-                  money(expensesTotal),
-                  Icons.receipt_long,
-                ),
-                _stat(
-                  'صافي الربح التقديري',
-                  money(netProfit),
-                  Icons.account_balance_wallet,
-                ),
+                _stat('عدد المشاوير', trips.length.toString(), Icons.alt_route),
+                _stat('الإيرادات', money(revenue), Icons.account_balance_wallet),
+                _stat('تكلفة الوقود', money(fuelTotal), Icons.local_gas_station),
+                _stat('المصاريف الأخرى', money(expensesTotal), Icons.receipt_long),
+                _stat('صافي الربح', money(netProfit), Icons.savings),
               ],
             ),
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'المصاريف الأخرى',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: _addExpense,
-                  icon: const Icon(Icons.add),
-                  label: const Text('إضافة مصروف'),
-                ),
-              ],
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _addExpense,
+              icon: const Icon(Icons.money_off),
+              label: const Text('إضافة مصروف جديد'),
             ),
-            ...expenses.take(5).map(
-              (expense) => ListTile(
-                leading: const Icon(Icons.receipt),
-                title: Text(expense.title),
-                subtitle: Text(fmt.format(expense.date)),
-                trailing: Text(money(expense.amount)),
-              ),
-            ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
             const Text(
-              'سجل المشاوير',
+              'سجل المشاوير السابقة',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            if (trips.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('لا توجد مشاوير محفوظة بعد'),
-              ),
-            ...trips.take(50).map(
-              (trip) => Card(
-                child: ListTile(
-                  leading: const Icon(Icons.local_taxi),
-                  title: Text('${trip.from} ← ${trip.to}'),
-                  subtitle: Text(
-                    '${fmt.format(trip.startedAt)}\n'
-                    '${trip.km.toStringAsFixed(2)} كم'
-                    ' • ${money(trip.fare)}',
+            const SizedBox(height: 8),
+            trips.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Center(child: Text('لا توجد مشاوير محفوظة بعد')),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: trips.length,
+                    itemBuilder: (context, index) {
+                      final t = trips[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          title: Text('${t.from} ← ${t.to}'),
+                          subtitle: Text(
+                            '${fmt.format(t.startedAt)} | ${t.km.toStringAsFixed(2)} كم\n'
+                            'الأجرة: ${money(t.fare)} | الوقود: ${money(t.fuelCost)}',
+                          ),
+                          isThreeLine: true,
+                        ),
+                      );
+                    },
                   ),
-                  isThreeLine: true,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Center(
-              child: Text(
-                'تكسي الشاهين • اتصل نصل',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
           ],
         ),
       ),
