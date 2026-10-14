@@ -15,8 +15,9 @@ class TaxiMeterApp extends StatelessWidget {
       title: 'عداد التاكسي الذكي - أبو شاهين',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF10172A),
+        scaffoldBackgroundColor: const Color(0xFF0F172A), // خلفية داكنة فخمة
         primarySwatch: Colors.amber,
+        fontFamily: 'Roboto',
       ),
       home: const TaxiHomePage(),
     );
@@ -31,12 +32,12 @@ class TaxiHomePage extends StatefulWidget {
 }
 
 class _TaxiHomePageState extends State<TaxiHomePage> {
-  // متغيرات التسعيرة
-  double baseFare = 500.0;       // سعر فتح الباب
-  double farePerKm = 1000.0;     // سعر الكيلومتر
+  // --- متغيرات التسعيرة (مخفية عن الواجهة الرئيسية وموجودة بالإعدادات) ---
+  double baseFare = 500.0;       // فتح الباب
+  double farePerKm = 1000.0;     // سعر الكيلو
   double farePerMinute = 100.0;  // سعر دقيقة الانتظار
 
-  // متغيرات العداد والمشوار
+  // --- متغيرات العداد والمشوار ---
   double totalFare = 500.0;
   double distanceKm = 0.00;
   int currentSpeed = 0;
@@ -45,13 +46,12 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
 
   Timer? _tripTimer;
 
-  @override
-  void initState() {
-    super.initState();
-    // رسالة ترحيبية أو التحقق من جاهزية العداد
-  }
+  // --- متغيرات حاسبة أرباح الوقود الخاصة بك ---
+  double fuelPricePerLiter = 1200.0; // سعر اللتر
+  double kmPerLiter = 10.0;          // معدل الاستهلاك (كم لكل لتر)
+  double dailyRevenue = 0.0;          // إجمالي الإيراد اليومي
 
-  // بدء أو إيقاف المشوار والعداد
+  // التحكم بالعداد
   void _toggleTrip() {
     setState(() {
       isTripActive = !isTripActive;
@@ -64,18 +64,17 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     }
   }
 
-  // العداد التراكمي للمشوار
   void _startTimer() {
     _tripTimer?.cancel();
     _tripTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!isTripActive) return;
 
       setState(() {
-        currentSpeed = 40; // محاكاة السرعة أثناء الحركة (يمكن ربطها بمستشعر الموقع لاحقاً)
-        distanceKm += (currentSpeed / 3600); 
+        currentSpeed = 40; // سرعة افتراضية أثناء الحركة
+        distanceKm += (currentSpeed / 3600);
         waitingSeconds++;
-        
-        // حساب الأجرة الإجمالية بدقة
+
+        // حساب الأجرة الإجمالية شاملة فتح الباب والانتظار والمسافة
         totalFare = baseFare + (distanceKm * farePerKm) + ((waitingSeconds / 60) * farePerMinute);
       });
     });
@@ -88,7 +87,6 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     });
   }
 
-  // إعادة ضبط العداد
   void _resetTrip() {
     _stopTimer();
     setState(() {
@@ -100,49 +98,214 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     });
   }
 
-  // نافذة التواصل عبر واتساب برقمك الخاص
-  void _openWhatsApp() {
+  // نافذة التواصل والطلب (واتساب + اتصال)
+  void _openContactDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('حجز مشوار - الشاهين',
-            style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
-        content: const Text(
-          'للحجز والتواصل المباشر مع الكابتن أبو شاهين (الشاهين):\n\n967777521058+',
-          style: TextStyle(fontSize: 16, color: Colors.white70),
-          textAlign: TextAlign.center,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.local_taxi, color: Colors.amber),
+            SizedBox(width: 8),
+            Text('حجز مشوار - الشاهين', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'للحجز والتواصل المباشر مع الكابتن أبو شاهين:\n\n📱 967777521058+',
+              style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
         actions: [
-          ElevatedButton(
+          ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Navigator.pop(context),
-            child: const Text('حسناً', style: TextStyle(color: Colors.white)),
+            icon: const Icon(Icons.check, color: Colors.white),
+            label: const Text('تم', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  // نافذة إعدادات التسعيرة الشاملة
+  // 📊 شاشة حاسبة الأرباح واستهلاك الوقود الخاصة بك وحدك
+  void _showProfitAndFuelCalculator() {
+    TextEditingController fuelPriceCtrl = TextEditingController(text: fuelPricePerLiter.toStringAsFixed(0));
+    TextEditingController kmPerLiterCtrl = TextEditingController(text: kmPerLiter.toStringAsFixed(1));
+    TextEditingController revenueCtrl = TextEditingController(text: dailyRevenue.toStringAsFixed(0));
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulWidget(
+          builder: (context, setModalState) {
+            // حسابات الوقود والأرباح
+            double totalKmDriven = distanceKm; 
+            double fuelUsedLiters = totalKmDriven > 0 ? (totalKmDriven / kmPerLiter) : 0.0;
+            double fuelCost = fuelUsedLiters * fuelPricePerLiter;
+            double currentRevenue = dailyRevenue > 0 ? dailyRevenue : totalFare;
+            double netProfit = currentRevenue - fuelCost;
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                top: 20,
+                left: 20,
+                right: 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          '📊 كشف الأرباح واستهلاك الوقود',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white54),
+                          onPressed: () => Navigator.pop(context),
+                        )
+                      ],
+                    ),
+                    const Divider(color: Colors.white24),
+                    const SizedBox(height: 10),
+
+                    // إدخال بيانات سعر الوقود والاستهلاك
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: fuelPriceCtrl,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
+                              labelText: 'سعر اللتر (ريال)',
+                              labelStyle: TextStyle(color: Colors.white60, fontSize: 12),
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (val) {
+                              setModalState(() {
+                                fuelPricePerLiter = double.tryParse(val) ?? fuelPricePerLiter;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: kmPerLiterCtrl,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
+                              labelText: 'استهلاك (كم/لتر)',
+                              labelStyle: TextStyle(color: Colors.white60, fontSize: 12),
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (val) {
+                              setModalState(() {
+                                kmPerLiter = double.tryParse(val) ?? kmPerLiter;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: revenueCtrl,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'إجمالي الدخل اليومي / المشوار (ريال)',
+                        labelStyle: TextStyle(color: Colors.white60, fontSize: 13),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) {
+                        setModalState(() {
+                          dailyRevenue = double.tryParse(val) ?? dailyRevenue;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // بطاقة نتائج التقرير المالي
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.tealAccent.withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildReportRow('المسافة المحسوبة:', '${totalKmDriven.toStringAsFixed(2)} كم', Colors.white70),
+                          const SizedBox(height: 8),
+                          _buildReportRow('الوقود المستهلك:', '${fuelUsedLiters.toStringAsFixed(2)} لتر', Colors.orangeAccent),
+                          const SizedBox(height: 8),
+                          _buildReportRow('تكلفة الوقود:', '${fuelCost.toStringAsFixed(0)} ريال', Colors.redAccent),
+                          const Divider(color: Colors.white24, height: 20),
+                          _buildReportRow('صافي الأرباح الربح:', '${netProfit.toStringAsFixed(0)} ريال', Colors.greenAccent, isBold: true),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildReportRow(String title, String value, Color color, {bool isBold = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: TextStyle(color: Colors.white70, fontSize: isBold ? 15 : 13)),
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: isBold ? 18 : 14,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ⚙️ نافذة الإعدادات الشاملة
   void _showSettingsDialog() {
-    TextEditingController baseController =
-        TextEditingController(text: baseFare.toStringAsFixed(0));
-    TextEditingController kmController =
-        TextEditingController(text: farePerKm.toStringAsFixed(0));
-    TextEditingController minController =
-        TextEditingController(text: farePerMinute.toStringAsFixed(0));
+    TextEditingController baseController = TextEditingController(text: baseFare.toStringAsFixed(0));
+    TextEditingController kmController = TextEditingController(text: farePerKm.toStringAsFixed(0));
+    TextEditingController minController = TextEditingController(text: farePerMinute.toStringAsFixed(0));
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('تعديل تسعيرة المشوار',
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('إعدادات التسعيرة والتقرير',
             style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(
           child: Column(
@@ -177,6 +340,23 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                   labelStyle: TextStyle(color: Colors.white70),
                 ),
               ),
+              const SizedBox(height: 20),
+              
+              // زر خاص بدخول كشف حساب الوقود والأرباح
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 45),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showProfitAndFuelCalculator();
+                },
+                icon: const Icon(Icons.analytics_outlined),
+                label: const Text('كشف أرباح واستهلاك الوقود الخاص بك'),
+              ),
             ],
           ),
         ),
@@ -188,7 +368,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.amber,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () {
               setState(() {
@@ -201,7 +381,7 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
               });
               Navigator.pop(context);
             },
-            child: const Text('حفظ التعديل', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            child: const Text('حفظ والتحديث', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -219,156 +399,198 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 14.0),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // الشريط العلوي
+                // 1. الشريط العلوي
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Expanded(
                       child: Text(
-                        'عداد التاكسي الذكي - أبو شاهين',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        'عداد التاكسي - أبو شاهين',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.settings, color: Colors.amber, size: 26),
-                      onPressed: _showSettingsDialog,
-                      tooltip: 'تعديل الأسعار',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // شاشة الأجرة الرئيسية
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.amber, width: 2),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text('الأجرة الإجمالية للمشوار',
-                          style: TextStyle(fontSize: 15, color: Colors.white70)),
-                      const SizedBox(height: 8),
-                      Text(
-                        totalFare.toStringAsFixed(0),
-                        style: const TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.amber),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'فتح الباب: ${baseFare.toStringAsFixed(0)} • كم: ${farePerKm.toStringAsFixed(0)} • دقيقة: ${farePerMinute.toStringAsFixed(0)}',
-                        style: const TextStyle(fontSize: 12, color: Colors.white60),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // بطاقات المسافة والسرعة
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('المسافة المقطوعة',
-                                style: TextStyle(color: Colors.white70, fontSize: 13)),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${distanceKm.toStringAsFixed(2)} كم',
-                              style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.tealAccent),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('السرعة الحالية',
-                                style: TextStyle(color: Colors.white70, fontSize: 13)),
-                            const SizedBox(height: 8),
-                            Text(
-                              '$currentSpeed كم/س',
-                              style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.tealAccent),
-                            ),
-                          ],
-                        ),
+                      child: IconButton(
+                        icon: const Icon(Icons.settings, color: Colors.amber, size: 26),
+                        onPressed: _showSettingsDialog,
+                        tooltip: 'الإعدادات والتقرير',
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
 
-                // زر حجز المشوار عبر واتساب (الشاهين)
+                // 2. شاشة الأجرة الرئيسية المصممة بفخامة (تم إخفاء فتح الباب والانتظار منها)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: Colors.amber.shade400, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withOpacity(0.15),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'أجرة المشوار الإجمالية',
+                        style: TextStyle(fontSize: 16, color: Colors.white70, letterSpacing: 0.5),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            totalFare.toStringAsFixed(0),
+                            style: const TextStyle(
+                              fontSize: 56,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'ريال',
+                            style: TextStyle(fontSize: 18, color: Colors.amberAccent),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 3. بطاقات المسافة والسرعة الحالية بحواف منحنية وجذابة
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.map_outlined, color: Colors.tealAccent, size: 18),
+                                SizedBox(width: 6),
+                                Text('المسافة', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              '${distanceKm.toStringAsFixed(2)} كم',
+                              style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.tealAccent),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.speed, color: Colors.tealAccent, size: 18),
+                                SizedBox(width: 6),
+                                Text('السرعة الحالية', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              '$currentSpeed كم/س',
+                              style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.tealAccent),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // 4. زر الطلب عبر واتساب أو الاتصال
                 ElevatedButton.icon(
-                  onPressed: _openWhatsApp,
-                  icon: const Icon(Icons.chat, color: Colors.white),
+                  onPressed: _openContactDialog,
+                  icon: const Icon(Icons.phone_in_talk, color: Colors.white),
                   label: const Text(
-                    'تواصل عبر واتساب (الشاهين)',
+                    'طلب مشوار عبر واتساب أو الاتصال',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: const Color(0xFF16A34A),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 4,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
 
-                // أزرار التحكم بالمشوار (بدء/إيقاف وإعادة ضبط)
+                // 5. أزرار التحكم بالمشوار (بدء/إيقاف وإعادة الضبط)
                 Row(
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: _toggleTrip,
                         icon: Icon(
-                            isTripActive ? Icons.pause : Icons.play_arrow,
-                            color: Colors.white),
+                          isTripActive ? Icons.pause_circle_filled : Icons.play_circle_fill,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                         label: Text(
                           isTripActive ? 'إيقاف مؤقت' : 'بدء المشوار',
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isTripActive ? Colors.orange : Colors.teal,
+                          backgroundColor: isTripActive ? Colors.orange.shade700 : Colors.teal.shade600,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          elevation: 4,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                       ),
@@ -377,12 +599,12 @@ class _TaxiHomePageState extends State<TaxiHomePage> {
                     Container(
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.white12),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
                       ),
                       child: IconButton(
                         onPressed: _resetTrip,
-                        icon: const Icon(Icons.refresh, color: Colors.redAccent),
+                        icon: const Icon(Icons.refresh_rounded, color: Colors.redAccent, size: 28),
                         padding: const EdgeInsets.all(14),
                         tooltip: 'إعادة ضبط المشوار',
                       ),
