@@ -1,3 +1,11 @@
+name: taxi_al_shaheen
+description: تطبيق متكامل لحساب أجرة التاكسي وإدارة المصاريف والرحلات لتكسي الشاهين.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
 dependencies:
   flutter:
     sdk: flutter
@@ -11,3 +19,11 @@ dependencies:
   share_plus: ^7.2.1
   pdf: ^3.10.7
   printing: ^5.11.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
