@@ -46,7 +46,6 @@ class TaxiAlShaheenApp extends StatelessWidget {
   }
 }
 
-// قاعدة البيانات المحلية
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
@@ -162,7 +161,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// 1. شاشة العداد الرئيسية
 class MeterScreen extends StatefulWidget {
   const MeterScreen({super.key});
 
@@ -425,8 +423,6 @@ class _MeterScreenState extends State<MeterScreen> {
     );
   }
 }
-
-// 2. شاشة إدارة الرحلات
 class TripsScreen extends StatefulWidget {
   const TripsScreen({super.key});
 
@@ -498,7 +494,6 @@ class _TripsScreenState extends State<TripsScreen> {
   }
 }
 
-// 3. شاشة إدارة المصاريف
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
 
@@ -582,4 +577,210 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   leading: const Icon(Icons.money_off, color: Colors.red),
                   title: Text(exp['title']),
                   subtitle: Text('النوع: ${exp['category']} | التاريخ: ${exp['date']}'),
-                  trailing: Text('${
+                  trailing: Text('${exp['amount']} ر.ي', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addExpenseDialog,
+        backgroundColor: Colors.amber[800],
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+class ReportsScreen extends StatefulWidget {
+  const ReportsScreen({super.key});
+
+  @override
+  State<ReportsScreen> createState() => _ReportsScreenState();
+}
+
+class _ReportsScreenState extends State<ReportsScreen> {
+  double totalRevenue = 0;
+  double totalFuelCost = 0;
+  double totalExpenses = 0;
+  int tripCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateReports();
+  }
+
+  void _calculateReports() async {
+    final trips = await DatabaseHelper.instance.queryAllTrips();
+    final expenses = await DatabaseHelper.instance.queryAllExpenses();
+
+    double rev = 0;
+    double fCost = 0;
+    for (var t in trips) {
+      rev += (t['totalFare'] as num).toDouble();
+      fCost += (t['fuelCost'] as num).toDouble();
+    }
+
+    double exp = 0;
+    for (var e in expenses) {
+      exp += (e['amount'] as num).toDouble();
+    }
+
+    setState(() {
+      totalRevenue = rev;
+      totalFuelCost = fCost;
+      totalExpenses = exp;
+      tripCount = trips.length;
+    });
+  }
+
+  void _shareReportText() {
+    String report = 'تقرير تكسي الشاهين:\n'
+        'عدد الرحلات: $tripCount\n'
+        'إجمالي الإيرادات: $totalRevenue ر.ي\n'
+        'تكلفة الوقود التقديرية: $totalFuelCost ر.ي\n'
+        'إجمالي المصاريف: $totalExpenses ر.ي\n'
+        'صافي الربح: ${totalRevenue - totalFuelCost - totalExpenses} ر.ي';
+    Share.share(report);
+  }
+
+  Future<void> _generatePdfReport() async {
+    final pdf = pw.Document();
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text('تكسي الشاهين - تقرير الأرباح والمصاريف', style: const pw.TextStyle(fontSize: 24)),
+            pw.SizedBox(height: 20),
+            pw.Text('عدد الرحلات: $tripCount'),
+            pw.Text('إجمالي الإيرادات: $totalRevenue ر.ي'),
+            pw.Text('تكلفة الوقود التقديرية: $totalFuelCost ر.ي'),
+            pw.Text('المصاريف المسجلة: $totalExpenses ر.ي'),
+            pw.Divider(),
+            pw.Text('صافي الربح التقديري: ${totalRevenue - totalFuelCost - totalExpenses} ر.ي', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double netProfit = totalRevenue - totalFuelCost - totalExpenses;
+    return Scaffold(
+      appBar: AppBar(title: const Text('التقارير المالية والأرباح')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Card(
+              child: ListTile(
+                title: const Text('إجمالي الإيرادات'),
+                trailing: Text('$totalRevenue ر.ي', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            Card(
+              child: ListTile(
+                title: const Text('تكلفة الوقود التقديرية'),
+                trailing: Text('$totalFuelCost ر.ي', style: const TextStyle(color: Colors.orange)),
+              ),
+            ),
+            Card(
+              child: ListTile(
+                title: const Text('إجمالي مصاريف التشغيل'),
+                trailing: Text('$totalExpenses ر.ي', style: const TextStyle(color: Colors.red)),
+              ),
+            ),
+            Card(
+              color: Colors.amber[100],
+              child: ListTile(
+                title: const Text('صافي الربح النهائي', style: TextStyle(fontWeight: FontWeight.bold)),
+                trailing: Text('$netProfit ر.ي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.amber[900])),
+              ),
+            ),
+            const Spacer(),
+            ElevatedButton.icon(
+              onPressed: _shareReportText,
+              icon: const Icon(Icons.share),
+              label: const Text('مشاركة التقرير كنص'),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: _generatePdfReport,
+              icon: const Icon(Icons.picture_as_pdf),
+              label: const Text('طباعة / حفظ تقرير PDF'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final TextEditingController _baseFareController = TextEditingController();
+  final TextEditingController _kmRateController = TextEditingController();
+  final TextEditingController _minuteRateController = TextEditingController();
+  final TextEditingController _fuelPriceController = TextEditingController();
+  final TextEditingController _fuelConsumptionController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  _loadSettings() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _baseFareController.text = (prefs.getDouble('baseFare') ?? 500).toString();
+      _kmRateController.text = (prefs.getDouble('kmRate') ?? 200).toString();
+      _minuteRateController.text = (prefs.getDouble('minuteRate') ?? 50).toString();
+      _fuelPriceController.text = (prefs.getDouble('fuelPrice') ?? 1550).toString();
+      _fuelConsumptionController.text = (prefs.getDouble('fuelConsumption') ?? 10).toString();
+    });
+  }
+
+  _saveSettings() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('baseFare', double.parse(_baseFareController.text));
+    await prefs.setDouble('kmRate', double.parse(_kmRateController.text));
+    await prefs.setDouble('minuteRate', double.parse(_minuteRateController.text));
+    await prefs.setDouble('fuelPrice', double.parse(_fuelPriceController.text));
+    await prefs.setDouble('fuelConsumption', double.parse(_fuelConsumptionController.text));
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ الإعدادات بنجاح!')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('إعدادات العداد والوقود')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          TextField(controller: _baseFareController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'أجرة بداية الرحلة (ر.ي)')),
+          TextField(controller: _kmRateController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'أجرة الكيلومتر (ر.ي)')),
+          TextField(controller: _minuteRateController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'أجرة دقيقة الانتظار (ر.ي)')),
+          TextField(controller: _fuelPriceController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر لتر الوقود (ر.ي)')),
+          TextField(controller: _fuelConsumptionController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'استهلاك الوقود (لتر لكل 100 كم)')),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _saveSettings,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber[800], foregroundColor: Colors.white),
+            child: const Text('حفظ الإعدادات'),
+          ),
+        ],
+      ),
+    );
+  }
+}
