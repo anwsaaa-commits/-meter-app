@@ -33,6 +33,14 @@ jobs:
           cp -r android ../
           cd ..
           rm -rf temp_app
+          
+          # تحديث نسخة Kotlin في ملف بناء أندرويد لتتوافق مع geolocator
+          BUILD_GRADLE="android/build.gradle"
+          if [ -f "$BUILD_GRADLE" ]; then
+            sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = '\''1.9.22'\''/g' "$BUILD_GRADLE"
+          else
+            echo "buildscript { ext.kotlin_version = '1.9.22' }" > "$BUILD_GRADLE"
+          fi
 
       - name: Install Dependencies
         run: flutter pub get
