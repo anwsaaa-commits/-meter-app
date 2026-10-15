@@ -780,8 +780,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text('حفظ الإعدادات'),
           ),
         ],
+                ],
       ),
     );
   }
 }
-// بناء جديد
