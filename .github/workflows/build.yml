@@ -25,6 +25,12 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
+      - name: Enable Android V2 Embedding
+        run: |
+          if [ ! -d "android" ]; then
+            flutter create . --org com.alshaheen --project-name taxi_al_shaheen --platforms=android
+          fi
+
       - name: Install Dependencies
         run: flutter pub get
 
