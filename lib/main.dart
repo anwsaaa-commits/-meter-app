@@ -51,10 +51,11 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
   int _elapsedSeconds = 0;
   Timer? _timer;
 
-  // الإعدادات والرقم ورابط الواتساب الخاص بـ أبو شاهين
+  // إعدادات العداد والوقود
   double _baseFare = 300.0;
   double _perKmRate = 150.0;
   double _waitingRatePerMinute = 50.0;
+  double _fuelRatePerKm = 30.0; // تكلفة البنزين المقدرة لكل كم (بالريال)
   String _driverPhone = '+967777521058';
   String _whatsappUrl = 'https://wa.me/qr/5MVL3DGBOKSQI1';
 
@@ -74,7 +75,7 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
       version: 1,
       onCreate: (db, version) {
         return db.execute(
-          'CREATE TABLE trips(id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, distance REAL, fare REAL, duration INTEGER)',
+          'CREATE TABLE trips(id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, distance REAL, fare REAL, fuel REAL, duration INTEGER)',
         );
       },
     );
@@ -86,12 +87,13 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
       _baseFare = prefs.getDouble('baseFare') ?? 300.0;
       _perKmRate = prefs.getDouble('perKmRate') ?? 150.0;
       _waitingRatePerMinute = prefs.getDouble('waitingRate') ?? 50.0;
+      _fuelRatePerKm = prefs.getDouble('fuelRate') ?? 30.0;
       _driverPhone = prefs.getString('driverPhone') ?? '+967777521058';
       _whatsappUrl = prefs.getString('whatsappUrl') ?? 'https://wa.me/qr/5MVL3DGBOKSQI1';
     });
   }
 
-  Future<void> _saveTripToDB(double distance, double fare, int seconds) async {
+  Future<void> _saveTripToDB(double distance, double fare, double fuel, int seconds) async {
     if (_database != null) {
       await _database!.insert(
         'trips',
@@ -99,6 +101,7 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
           'date': DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
           'distance': distance,
           'fare': fare,
+          'fuel': fuel,
           'duration': seconds,
         },
       );
@@ -116,7 +119,7 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _elapsedSeconds++;
-        _distanceKm += 0.005; // محاكاة المسافة
+        _distanceKm += 0.005; // محاكاة تزايد المسافة
         _totalFare = _baseFare + (_distanceKm * _perKmRate) + ((_elapsedSeconds / 60) * _waitingRatePerMinute);
       });
     });
@@ -124,14 +127,15 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
 
   void _stopTrip() {
     _timer?.cancel();
+    double estimatedFuelCost = _distanceKm * _fuelRatePerKm;
     setState(() {
       _isTripActive = false;
     });
-    _saveTripToDB(_distanceKm, _totalFare, _elapsedSeconds);
-    _showTripSummaryDialog();
+    _saveTripToDB(_distanceKm, _totalFare, estimatedFuelCost, _elapsedSeconds);
+    _showTripSummaryDialog(estimatedFuelCost);
   }
 
-  void _showTripSummaryDialog() {
+  void _showTripSummaryDialog(double fuelCost) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -142,10 +146,13 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('المسافة المقطوعة: ${_distanceKm.toStringAsFixed(2)} كم'),
-            Text('وقت الرحلة: ${(_elapsedSeconds / 60).toStringAsFixed(1)} دقيقة'),
+            Text('الوقت المستغرق: ${(_elapsedSeconds / 60).toStringAsFixed(1)} دقيقة'),
+            Text('استهلاك الوقود المقدر: ${fuelCost.toStringAsFixed(1)} ريال', style: const TextStyle(color: Colors.redAccent)),
             const Divider(),
-            Text('إجمالي المستحق: ${_totalFare.toStringAsFixed(1)} ريال',
+            Text('إجمالي الأجرة: ${_totalFare.toStringAsFixed(1)} ريال',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.amber)),
+            Text('صافي الربح التقديري: ${(_totalFare - fuelCost).toStringAsFixed(1)} ريال',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green)),
           ],
         ),
         actions: [
@@ -159,7 +166,6 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
     );
   }
 
-  // الاتصال المباشر
   Future<void> _makePhoneCall() async {
     final Uri url = Uri(scheme: 'tel', path: _driverPhone);
     if (await canLaunchUrl(url)) {
@@ -167,7 +173,6 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
     }
   }
 
-  // فتح رابط الواتساب المباشر
   Future<void> _openWhatsApp() async {
     final Uri url = Uri.parse(_whatsappUrl);
     if (await canLaunchUrl(url)) {
@@ -179,6 +184,7 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
     TextEditingController baseController = TextEditingController(text: _baseFare.toString());
     TextEditingController kmController = TextEditingController(text: _perKmRate.toString());
     TextEditingController waitController = TextEditingController(text: _waitingRatePerMinute.toString());
+    TextEditingController fuelController = TextEditingController(text: _fuelRatePerKm.toString());
     TextEditingController phoneController = TextEditingController(text: _driverPhone);
     TextEditingController waController = TextEditingController(text: _whatsappUrl);
 
@@ -186,7 +192,7 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('إعدادات العداد والاتصال'),
+        title: const Text('الإعدادات وكشف الحساب'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -194,44 +200,55 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
               TextField(controller: baseController, decoration: const InputDecoration(labelText: 'سعر الفتح الأساسي (ريال)'), keyboardType: TextInputType.number),
               TextField(controller: kmController, decoration: const InputDecoration(labelText: 'سعر الكيلومتر (ريال)'), keyboardType: TextInputType.number),
               TextField(controller: waitController, decoration: const InputDecoration(labelText: 'سعر دقيقة الانتظار (ريال)'), keyboardType: TextInputType.number),
+              TextField(controller: fuelController, decoration: const InputDecoration(labelText: 'تكلفة وقود الكيلومتر (ريال)'), keyboardType: TextInputType.number),
               TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'رقم الاتصال المباشر'), keyboardType: TextInputType.phone),
               TextField(controller: waController, decoration: const InputDecoration(labelText: 'رابط الواتساب المباشر')),
+              const Divider(height: 30),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.amber[800], foregroundColor: Colors.white),
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const TripHistoryScreen()));
+                },
+                icon: const Icon(Icons.history),
+                label: const Text('عرض كشف الأرباح والسجل'),
+              ),
             ],
           ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber[800], foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white),
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
               setState(() {
                 _baseFare = double.tryParse(baseController.text) ?? 300.0;
                 _perKmRate = double.tryParse(kmController.text) ?? 150.0;
                 _waitingRatePerMinute = double.tryParse(waitController.text) ?? 50.0;
+                _fuelRatePerKm = double.tryParse(fuelController.text) ?? 30.0;
                 _driverPhone = phoneController.text;
                 _whatsappUrl = waController.text;
               });
               await prefs.setDouble('baseFare', _baseFare);
               await prefs.setDouble('perKmRate', _perKmRate);
               await prefs.setDouble('waitingRate', _waitingRatePerMinute);
+              await prefs.setDouble('fuelRate', _fuelRatePerKm);
               await prefs.setString('driverPhone', _driverPhone);
               await prefs.setString('whatsappUrl', _whatsappUrl);
               Navigator.pop(context);
             },
-            child: const Text('حفظ الإعدادات'),
+            child: const Text('حفظ التعديلات'),
           ),
         ],
       ),
     );
   }
 
-  void _openHistoryScreen() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const TripHistoryScreen()));
-  }
-
   @override
   Widget build(BuildContext context) {
+    double fuelCostThisTrip = _distanceKm * _fuelRatePerKm;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('تكسي الشاهين - العداد الذكي', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -239,129 +256,121 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings, size: 28),
             onPressed: _openSettingsDialog,
-            tooltip: 'الإعدادات',
+            tooltip: 'الإعدادات والسجل',
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    const Text('الأجرة الحالية', style: TextStyle(fontSize: 18, color: Colors.grey)),
-                    const SizedBox(height: 10),
-                    Text(
-                      '${_totalFare.toStringAsFixed(1)} ريال',
-                      style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.amber[900]),
-                    ),
-                    const Divider(height: 30),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Column(
-                          children: [
-                            const Text('المسافة', style: TextStyle(color: Colors.grey)),
-                            Text('${_distanceKm.toStringAsFixed(2)} كم', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        Column(
-                          children: [
-                            const Text('الوقت', style: TextStyle(color: Colors.grey)),
-                            Text('${(_elapsedSeconds / 60).toStringAsFixed(0)} دقيقة', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // أزرار الواتساب والاتصال التلقائي
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _makePhoneCall,
-                    icon: const Icon(Icons.phone),
-                    label: const Text('اتصال مباشر'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[700],
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      const Text('الأجرة الحالية', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                      const SizedBox(height: 5),
+                      Text(
+                        '${_totalFare.toStringAsFixed(1)} ريال',
+                        style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: Colors.amber[900]),
+                      ),
+                      const Divider(height: 25),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Column(
+                            children: [
+                              const Text('المسافة', style: TextStyle(color: Colors.grey)),
+                              Text('${_distanceKm.toStringAsFixed(2)} كم', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          Column(
+                            children: [
+                              const Text('الوقت', style: TextStyle(color: Colors.grey)),
+                              Text('${(_elapsedSeconds / 60).toStringAsFixed(0)} دقيقة', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          Column(
+                            children: [
+                              const Text('الوقود المقدر', style: TextStyle(color: Colors.grey)),
+                              Text('${fuelCostThisTrip.toStringAsFixed(1)} ريال', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _openWhatsApp,
-                    icon: const Icon(Icons.chat),
-                    label: const Text('واتساب مباشر'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[700],
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              const SizedBox(height: 20),
+
+              // أزرار التواصل المباشر
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _makePhoneCall,
+                      icon: const Icon(Icons.phone),
+                      label: const Text('اتصال مباشر'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue[700],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _openWhatsApp,
+                      icon: const Icon(Icons.chat),
+                      label: const Text('واتساب مباشر'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green[700],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
 
-            // زر سجل المشاوير والأرباح
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _openHistoryScreen,
-                icon: const Icon(Icons.history, color: Colors.amber),
-                label: const Text('سجل الرحلات السابقة والأرباح', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: Colors.amber[800]!, width: 2),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              // زر تشغيل وإيقاف العداد الواضح بالكامل
+              SizedBox(
+                width: double.infinity,
+                height: 60,
+                child: ElevatedButton.icon(
+                  onPressed: _isTripActive ? _stopTrip : _startTrip,
+                  icon: Icon(_isTripActive ? Icons.stop : Icons.play_arrow, size: 32),
+                  label: Text(
+                    _isTripActive ? 'إيقاف العداد وإنهاء الرحلة' : 'بدء الرحلة الجديدة',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isTripActive ? Colors.red[700] : Colors.green[700],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
                 ),
               ),
-            ),
-            const Spacer(),
-
-            // زر تشغيل وإيقاف العداد
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton.icon(
-                onPressed: _isTripActive ? _stopTrip : _startTrip,
-                icon: Icon(_isTripActive ? Icons.stop : Icons.play_arrow, size: 28),
-                label: Text(
-                  _isTripActive ? 'إيقاف العداد وإنهاء الرحلة' : 'بدء الرحلة الجديدة',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _isTripActive ? Colors.red[700] : Colors.green[700],
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
+// شاشة كشف الأرباح والسجل مع خاصية مسح وحذف السجل
 class TripHistoryScreen extends StatefulWidget {
   const TripHistoryScreen({super.key});
 
@@ -372,6 +381,7 @@ class TripHistoryScreen extends StatefulWidget {
 class _TripHistoryScreenState extends State<TripHistoryScreen> {
   List<Map<String, dynamic>> _trips = [];
   double _totalEarnings = 0.0;
+  double _totalFuelCosts = 0.0;
 
   @override
   void initState() {
@@ -384,45 +394,101 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
     final db = await openDatabase(path);
     final List<Map<String, dynamic>> maps = await db.query('trips', orderBy: 'id DESC');
 
-    double sum = 0.0;
+    double sumFare = 0.0;
+    double sumFuel = 0.0;
     for (var trip in maps) {
-      sum += (trip['fare'] as num).toDouble();
+      sumFare += (trip['fare'] as num).toDouble();
+      sumFuel += (trip['fuel'] ?? 0.0 as num).toDouble();
     }
 
     setState(() {
       _trips = maps;
-      _totalEarnings = sum;
+      _totalEarnings = sumFare;
+      _totalFuelCosts = sumFuel;
     });
+  }
+
+  Future<void> _clearAllTrips() async {
+    String path = p.join(await getDatabasesPath(), 'taxi_shaheen.db');
+    final db = await openDatabase(path);
+    await db.delete('trips');
+    _loadTrips();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('سجل المشاوير والأرباح'),
+        title: const Text('كشف الأرباح والرحلات'),
         backgroundColor: Colors.amber[800],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_forever),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('حذف السجل بالكامل'),
+                  content: const Text('هل أنت تأكد من تفريغ كشف الأرباح والسجل؟'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      onPressed: () {
+                        _clearAllTrips();
+                        Navigator.pop(context);
+                      },
+                      child: const Text('حذف'),
+                    ),
+                  ],
+                ),
+              );
+            },
+            tooltip: 'مسح السجل',
+          ),
+        ],
       ),
       body: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.amber[100],
+              color: Colors.amber[50],
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.amber[800]!, width: 1.5),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
               children: [
-                const Text('إجمالي الأرباح المحفوظة:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                Text('${_totalEarnings.toStringAsFixed(1)} ريال', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.amber[900])),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('إجمالي الدخل:', style: TextStyle(fontSize: 15)),
+                    Text('${_totalEarnings.toStringAsFixed(1)} ريال', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber[900])),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('إجمالي تكلفة الوقود:', style: TextStyle(fontSize: 15)),
+                    Text('${_totalFuelCosts.toStringAsFixed(1)} ريال', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                  ],
+                ),
+                const Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('صافي الأرباح:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text('${(_totalEarnings - _totalFuelCosts).toStringAsFixed(1)} ريال', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
+                  ],
+                ),
               ],
             ),
           ),
           Expanded(
             child: _trips.isEmpty
-                ? const Center(child: Text('لا توجد رحلات مسجلة حتى الآن'))
+                ? const Center(child: Text('لا توجد رحلات مسجلة في السجل'))
                 : ListView.builder(
                     itemCount: _trips.length,
                     itemBuilder: (context, index) {
@@ -432,8 +498,8 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         child: ListTile(
                           title: Text('الأجرة: ${trip['fare']} ريال', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('المسافة: ${trip['distance']} كم | الوقت: ${trip['duration']} ثانية'),
-                          trailing: Text('${trip['date']}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          subtitle: Text('المسافة: ${trip['distance']} كم | الوقود: ${trip['fuel'] ?? 0} ريال'),
+                          trailing: Text('${trip['date']}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
                         ),
                       );
                     },
