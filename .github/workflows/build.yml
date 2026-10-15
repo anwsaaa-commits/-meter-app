@@ -25,14 +25,12 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Generate Android & Fix Kotlin Version
+      - name: Generate Clean Project and Update Properties
         run: |
           flutter create . --org com.alshaheen --project-name taxi_al_shaheen --platforms=android
-          # تحديث نسخة كوتلين تلقائياً لمنع ظهور خطأ التوافق
-          BUILD_GRADLE="android/build.gradle"
-          if [ -f "$BUILD_GRADLE" ]; then
-            sed -i "s/ext.kotlin_version = .*/ext.kotlin_version = '1.9.22'/g" "$BUILD_GRADLE"
-          fi
+           echo "distributionBase=GRADLE_USER_HOME" > android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionPath=wrapper/dists" >> android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.3-bin.zip" >> android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Install Dependencies
         run: flutter pub get
