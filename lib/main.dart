@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
@@ -7,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:share_plus/share_plus.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,11 +51,12 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
   int _elapsedSeconds = 0;
   Timer? _timer;
 
-  // الإعدادات الافتراضية
+  // الإعدادات والرقم ورابط الواتساب الخاص بـ أبو شاهين
   double _baseFare = 300.0;
   double _perKmRate = 150.0;
   double _waitingRatePerMinute = 50.0;
-  String _driverPhone = '+967700000000'; // رقم التواصل والواتساب
+  String _driverPhone = '+967777521058';
+  String _whatsappUrl = 'https://wa.me/qr/5MVL3DGBOKSQI1';
 
   Database? _database;
 
@@ -87,7 +86,8 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
       _baseFare = prefs.getDouble('baseFare') ?? 300.0;
       _perKmRate = prefs.getDouble('perKmRate') ?? 150.0;
       _waitingRatePerMinute = prefs.getDouble('waitingRate') ?? 50.0;
-      _driverPhone = prefs.getString('driverPhone') ?? '+967700000000';
+      _driverPhone = prefs.getString('driverPhone') ?? '+967777521058';
+      _whatsappUrl = prefs.getString('whatsappUrl') ?? 'https://wa.me/qr/5MVL3DGBOKSQI1';
     });
   }
 
@@ -138,13 +138,13 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('ملخص الرحلة المحفوظة'),
         content: Column(
-      mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('المسافة: ${_distanceKm.toStringAsFixed(2)} كم'),
-            Text('الوقت: ${(_elapsedSeconds / 60).toStringAsFixed(1)} دقيقة'),
+            Text('المسافة المقطوعة: ${_distanceKm.toStringAsFixed(2)} كم'),
+            Text('وقت الرحلة: ${(_elapsedSeconds / 60).toStringAsFixed(1)} دقيقة'),
             const Divider(),
-            Text('الإجمالي: ${_totalFare.toStringAsFixed(1)} ريال',
+            Text('إجمالي المستحق: ${_totalFare.toStringAsFixed(1)} ريال',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.amber)),
           ],
         ),
@@ -159,32 +159,43 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
     );
   }
 
-  Future<void> _launchURL(String urlString) async {
-    final Uri url = Uri.parse(urlString);
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      throw Exception('Could not launch $urlString');
+  // الاتصال المباشر
+  Future<void> _makePhoneCall() async {
+    final Uri url = Uri(scheme: 'tel', path: _driverPhone);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    }
+  }
+
+  // فتح رابط الواتساب المباشر
+  Future<void> _openWhatsApp() async {
+    final Uri url = Uri.parse(_whatsappUrl);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
   void _openSettingsDialog() {
-    Text_baseController = TextEditingController(text: _baseFare.toString());
-    Text_kmController = TextEditingController(text: _perKmRate.toString());
-    Text_waitController = TextEditingController(text: _waitingRatePerMinute.toString());
-    Text_phoneController = TextEditingController(text: _driverPhone);
+    TextEditingController baseController = TextEditingController(text: _baseFare.toString());
+    TextEditingController kmController = TextEditingController(text: _perKmRate.toString());
+    TextEditingController waitController = TextEditingController(text: _waitingRatePerMinute.toString());
+    TextEditingController phoneController = TextEditingController(text: _driverPhone);
+    TextEditingController waController = TextEditingController(text: _whatsappUrl);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('إعدادات العداد والأسعار'),
+        title: const Text('إعدادات العداد والاتصال'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: Text_baseController, decoration: const InputDecoration(labelText: 'الفتح الأساسي (ريال)'), keyboardType: TextInputType.number),
-              TextField(controller: Text_kmController, decoration: const InputDecoration(labelText: 'سعر الكيلومتر (ريال)'), keyboardType: TextInputType.number),
-              TextField(controller: Text_waitController, decoration: const InputDecoration(labelText: 'سعر دقيقة الانتظار (ريال)'), keyboardType: TextInputType.number),
-              TextField(controller: Text_phoneController, decoration: const InputDecoration(labelText: 'رقم واتساب واتصال السائق'), keyboardType: TextInputType.phone),
+              TextField(controller: baseController, decoration: const InputDecoration(labelText: 'سعر الفتح الأساسي (ريال)'), keyboardType: TextInputType.number),
+              TextField(controller: kmController, decoration: const InputDecoration(labelText: 'سعر الكيلومتر (ريال)'), keyboardType: TextInputType.number),
+              TextField(controller: waitController, decoration: const InputDecoration(labelText: 'سعر دقيقة الانتظار (ريال)'), keyboardType: TextInputType.number),
+              TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'رقم الاتصال المباشر'), keyboardType: TextInputType.phone),
+              TextField(controller: waController, decoration: const InputDecoration(labelText: 'رابط الواتساب المباشر')),
             ],
           ),
         ),
@@ -195,15 +206,17 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
               setState(() {
-                _baseFare = double.tryParse(Text_baseController.text) ?? 300.0;
-                _perKmRate = double.tryParse(Text_kmController.text) ?? 150.0;
-                _waitingRatePerMinute = double.tryParse(Text_waitController.text) ?? 50.0;
-                _driverPhone = Text_phoneController.text;
+                _baseFare = double.tryParse(baseController.text) ?? 300.0;
+                _perKmRate = double.tryParse(kmController.text) ?? 150.0;
+                _waitingRatePerMinute = double.tryParse(waitController.text) ?? 50.0;
+                _driverPhone = phoneController.text;
+                _whatsappUrl = waController.text;
               });
               await prefs.setDouble('baseFare', _baseFare);
               await prefs.setDouble('perKmRate', _perKmRate);
               await prefs.setDouble('waitingRate', _waitingRatePerMinute);
               await prefs.setString('driverPhone', _driverPhone);
+              await prefs.setString('whatsappUrl', _whatsappUrl);
               Navigator.pop(context);
             },
             child: const Text('حفظ الإعدادات'),
@@ -272,18 +285,19 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            // أزرار الاتصال والواتساب السريعة بحواف دائرية
+
+            // أزرار الواتساب والاتصال التلقائي
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => _launchURL('tel:$_driverPhone'),
+                    onPressed: _makePhoneCall,
                     icon: const Icon(Icons.phone),
-                    label: const Text('اتصال بالطلب'),
+                    label: const Text('اتصال مباشر'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue[700],
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -291,13 +305,13 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => _launchURL('https://wa.me/$_driverPhone?text=مرحباً، أريد طلب تكسي الشاهين'),
+                    onPressed: _openWhatsApp,
                     icon: const Icon(Icons.chat),
-                    label: const Text('واتساب المشاوير'),
+                    label: const Text('واتساب مباشر'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green[700],
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -305,13 +319,14 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            // زر سجل الحسابات والأرباح بحواف دائرية
+
+            // زر سجل المشاوير والأرباح
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _openHistoryScreen,
                 icon: const Icon(Icons.history, color: Colors.amber),
-                label: const Text('سجل وحسابات الرحلات السابقة والأرباح', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                label: const Text('سجل الرحلات السابقة والأرباح', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   side: BorderSide(color: Colors.amber[800]!, width: 2),
@@ -320,6 +335,8 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
               ),
             ),
             const Spacer(),
+
+            // زر تشغيل وإيقاف العداد
             SizedBox(
               width: double.infinity,
               height: 55,
@@ -345,7 +362,6 @@ class _TaxiHomeScreenState extends State<TaxiHomeScreen> {
   }
 }
 
-// شاشة سجل الرحلات والأرباح
 class TripHistoryScreen extends StatefulWidget {
   const TripHistoryScreen({super.key});
 
@@ -428,9 +444,3 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
     );
   }
 }
-
-// متغيرات مؤقتة لحقول الإعدادات
-TextEditingController Text_baseController = TextEditingController();
-TextEditingController Text_kmController = TextEditingController();
-TextEditingController Text_waitController = TextEditingController();
-TextEditingController Text_phoneController = TextEditingController();
