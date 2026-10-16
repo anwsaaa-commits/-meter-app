@@ -7,7 +7,6 @@ plugins {
 android {
     namespace "com.alshaheen.taxi"
     compileSdkVersion 34
-    ndkVersion flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -35,9 +34,4 @@ android {
 
 flutter {
     source '../..'
-}
-
-dependencies {
-    implementation platform('com.google.firebase:firebase-bom:33.0.0')
-    implementation 'com.google.firebase:firebase-analytics'
 }
