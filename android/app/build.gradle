@@ -25,13 +25,10 @@ android {
         versionName "1.0.0"
     }
 
-    buildTypes {
-        release {
-            signingConfig signingConfigs.debug
-        }
-    }
-}
-
+     buildTypes {
+     release {
+     }
+ }
 flutter {
     source '../..'
 }
