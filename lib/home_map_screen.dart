@@ -11,9 +11,9 @@ class HomeMapScreen extends StatefulWidget {
 class _HomeMapScreenState extends State<HomeMapScreen> {
   late GoogleMapController _mapController;
 
-  // موقع افتراضي (يمكن تغييره لموقعك الحالي)
+  // موقع افتراضي (المكلا / اليمن)
   static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(14.5425, 49.1242), // بالمكلا / اليمن
+    target: LatLng(14.5425, 49.1242),
     zoom: 14.5,
   );
 
@@ -45,7 +45,7 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. الخريطة التفاعلية في الخلفية
+          // 1. الخريطة التفاعلية
           GoogleMap(
             initialCameraPosition: _initialPosition,
             myLocationEnabled: true,
@@ -56,7 +56,7 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
             },
           ),
 
-          // 2. زر القائمة العلوي وشعار التطبيق
+          // 2. شريط الأزرار العلوي
           Positioned(
             top: 50,
             left: 20,
@@ -64,9 +64,10 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                CircleAvatar(
-                  backgroundColor: Colors.white,
+                Material(
                   elevation: 4,
+                  shape: const CircleBorder(),
+                  color: Colors.white,
                   child: IconButton(
                     icon: const Icon(Icons.menu, color: Colors.black),
                     onPressed: () {},
@@ -83,9 +84,10 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
-                CircleAvatar(
-                  backgroundColor: Colors.white,
+                Material(
                   elevation: 4,
+                  shape: const CircleBorder(),
+                  color: Colors.white,
                   child: IconButton(
                     icon: const Icon(Icons.notifications_none, color: Colors.black),
                     onPressed: () {},
@@ -95,7 +97,7 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
             ),
           ),
 
-          // 3. شريحة اختيار نوع المشوار والطلب (مثل كريم وأوبر)
+          // 3. شريحة اختيار نوع المشوار والطلب
           DraggableScrollableSheet(
             initialChildSize: 0.40,
             minChildSize: 0.25,
@@ -113,7 +115,6 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
                   controller: scrollController,
                   padding: const EdgeInsets.all(20),
                   children: [
-                    // مقبض السحب
                     Center(
                       child: Container(
                         width: 40,
@@ -132,7 +133,6 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
                     ),
                     const SizedBox(height: 15),
 
-                    // قائمة خيارات السيارات
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -187,7 +187,6 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
 
                     const SizedBox(height: 15),
 
-                    // زر تأكيد طلب المشوار
                     SizedBox(
                       width: double.infinity,
                       height: 54,
