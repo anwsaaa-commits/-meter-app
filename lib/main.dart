@@ -5,18 +5,16 @@ import 'phone_auth_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // تهيئة فايربيس ببيانات مشروعك الحقيقية والخاصة بالتطبيق
   await Firebase.initializeApp(
     options: const FirebaseOptions(
-      apiKey: "AIzaSyBxp1Oib1-G2ZFZ4PJWNtFfwNWKsvPqJHk",
+      apiKey: "AIzaSyBxp10iWl-G2ZF24PJWNtFfWNwKsvPqJhk",
       appId: "1:52073323980:android:ec07f04523c0a22b0fd169",
       messagingSenderId: "52073323980",
       projectId: "taxi-al-shaheen",
-      storageBucket: "taxi-al-shaheen.firebasestorage.app",
+      storageBucket: "taxi-al-shaheen.appspot.com",
     ),
   );
-
+  
   runApp(const TaxiAlShaheenApp());
 }
 
@@ -32,7 +30,6 @@ class TaxiAlShaheenApp extends StatelessWidget {
         primarySwatch: Colors.amber,
         fontFamily: 'Roboto',
       ),
-      // الشاشة الرئيسية للتطبيق (الخريطة وطلب المشوار)
       home: const HomeMapScreen(),
     );
   }
