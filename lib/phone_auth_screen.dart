@@ -75,7 +75,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 32),
-              if (!_codeSent) ...[
+                    if (!_codeSent) ...[
                 TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
@@ -90,8 +90,11 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                   onPressed: _isLoading ? null : _verifyPhone,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.black)
-                      ? const Text('إرسال الرمز')
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                        )
                       : const Text('إرسال الرمز'),
                 ),
               ] else ...[
@@ -108,7 +111,11 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                   onPressed: _isLoading ? null : _signInWithOTP,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.black)
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                        )
                       : const Text('تحقق وتسجيل الدخول'),
                 ),
               ],
