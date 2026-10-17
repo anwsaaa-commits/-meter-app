@@ -11,7 +11,7 @@ class PhoneAuthScreen extends StatefulWidget {
 class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
-  
+
   String? _verificationId;
   bool _codeSent = false;
   bool _isLoading = false;
@@ -50,11 +50,10 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
         smsCode: _otpController.text.trim(),
       );
       await FirebaseAuth.instance.signInWithCredential(credential);
-      // تم الدخول بنجاح! الانتقال للشاشة الرئيسية
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('رمز التفعيل غير صحيح')),
+        const SnackBar(content: Text('رمز التحقق غير صحيح')),
       );
     }
   }
@@ -67,74 +66,50 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 40),
-              Text(
-                'تكسي الشاهين',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+              const Text(
+                'تسجيل دخول تكسي الشاهين',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 10),
-              Text(
-                _codeSent ? 'أدخل رمز التفعيل المرسل لجوالك' : 'أدخل رقم الهاتف للدخول أو التسجيل',
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
               if (!_codeSent) ...[
                 TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    hintText: '+967 XXXXXXXX',
+                  decoration: const InputDecoration(
                     labelText: 'رقم الهاتف مع رمز الدولة',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: const Icon(Icons.phone),
+                    hintText: '+967...',
+                    border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: _isLoading ? null : _verifyPhone,
-                    child: _isLoading 
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('إرسال رمز التفعيل', style: TextStyle(fontSize: 18, color: Colors.white)),
-                  ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _verifyPhone,
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      ? const Text('إرسال الرمز')
+                      : const Text('إرسال الرمز'),
                 ),
               ] else ...[
                 TextField(
                   controller: _otpController,
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: '123456',
-                    labelText: 'رمز التفعيل (OTP)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: const Icon(Icons.lock_clock),
+                  decoration: const InputDecoration(
+                    labelText: 'رمز التحقق (OTP)',
+                    border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: _isLoading ? null : _signInWithOTP,
-                    child: _isLoading 
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('تأكيد وتأكيد الدخول', style: TextStyle(fontSize: 18, color: Colors.white)),
-                  ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _signInWithOTP,
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : const Text('تحقق وتسجيل الدخول'),
                 ),
               ],
             ],
