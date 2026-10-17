@@ -9,11 +9,10 @@ class HomeMapScreen extends StatefulWidget {
 }
 
 class _HomeMapScreenState extends State<HomeMapScreen> {
-  late GoogleMapController _mapController;
+  GoogleMapController? _mapController;
 
-  // موقع افتراضي (المكلا / اليمن)
   static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(14.5425, 49.1242),
+    target: LatLng(14.5425, 49.1242), // حضرموت / المكلا
     zoom: 14.5,
   );
 
@@ -45,7 +44,7 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. الخريطة التفاعلية
+          // 1. خريطة جوجل
           GoogleMap(
             initialCameraPosition: _initialPosition,
             myLocationEnabled: true,
@@ -56,7 +55,7 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
             },
           ),
 
-          // 2. شريط الأزرار العلوي
+          // 2. شريط العلوي (القائمة والإشعارات)
           Positioned(
             top: 50,
             left: 20,
@@ -66,30 +65,31 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
               children: [
                 Material(
                   elevation: 4,
-                  shape: const CircleBorder(),
-                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
                   child: IconButton(
                     icon: const Icon(Icons.menu, color: Colors.black),
-                    onPressed: () {},
+                    onPressed: () {
+                      // القائمة الجانبية أو خيارات الحساب
+                    },
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.black,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
                   ),
                   child: const Text(
                     'تكسي الشاهين',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
                 Material(
                   elevation: 4,
-                  shape: const CircleBorder(),
-                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
                   child: IconButton(
-                    icon: const Icon(Icons.notifications_none, color: Colors.black),
+                    icon: const Icon(Icons.notifications, color: Colors.black),
                     onPressed: () {},
                   ),
                 ),
@@ -97,122 +97,102 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
             ),
           ),
 
-          // 3. شريحة اختيار نوع المشوار والطلب
-          DraggableScrollableSheet(
-            initialChildSize: 0.40,
-            minChildSize: 0.25,
-            maxChildSize: 0.70,
-            builder: (context, scrollController) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 2),
-                  ],
-                ),
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-
-                    const Text(
-                      'إلى أين تريد الذهاب؟',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 15),
-
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
+          // 3. لوحة اختيار نوع الرحلة أسفل الشاشة
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10, spreadRadius: 2)],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'اختر نوع الرحلة',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 100,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
                       itemCount: _rideTypes.length,
                       itemBuilder: (context, index) {
-                        bool isSelected = _selectedCarIndex == index;
-                        var item = _rideTypes[index];
+                        final ride = _rideTypes[index];
+                        final isSelected = _selectedCarIndex == index;
                         return GestureDetector(
                           onTap: () {
-                            setState(() => _selectedCarIndex = index);
+                            setState(() {
+                              _selectedCarIndex = index;
+                            });
                           },
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isSelected ? Colors.grey[100] : Colors.white,
-                              border: Border.all(
-                                color: isSelected ? Colors.black : Colors.grey[300]!,
-                                width: isSelected ? 2 : 1,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(item['icon'], size: 36, color: Colors.black),
-                                const SizedBox(width: 15),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item['title'],
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                      ),
-                                      Text(
-                                        item['subtitle'],
-                                        style: const TextStyle(color: Colors.grey, fontSize: 12),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  item['price'],
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                ),
-                              ],
-                            ),
-                          ),
                         );
                       },
                     ),
-
-                    const SizedBox(height: 15),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  // كارت عرض الخيار المحدد
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber, width: 1.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(_rideTypes[_selectedCarIndex]['icon'], size: 40, color: Colors.amber.shade800),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _rideTypes[_selectedCarIndex]['title'],
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              Text(
+                                _rideTypes[_selectedCarIndex]['subtitle'],
+                                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                              ),
+                            ],
+                          ),
                         ),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('تم إرسال طلبك: ${_rideTypes[_selectedCarIndex]['title']} جاري البحث عن أقرب سائق...'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'تأكيد طلب ${_rideTypes[_selectedCarIndex]['title']}',
-                          style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                        Text(
+                          _rideTypes[_selectedCarIndex]['price'],
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
                         ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('تم طلب ${_rideTypes[_selectedCarIndex]['title']} بنجاح!')),
+                        );
+                      },
+                      child: const Text(
+                        'طلب تكسي الشاهين الان',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
                       ),
                     ),
-                  ],
-                ),
-              );
-            },
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
