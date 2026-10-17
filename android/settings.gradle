@@ -17,7 +17,6 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.ALLOW_PROJECT_REPOSITORIES)
     repositories {
         google()
         mavenCentral()
