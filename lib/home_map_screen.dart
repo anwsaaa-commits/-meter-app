@@ -47,7 +47,7 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
           // 1. خريطة جوجل
           GoogleMap(
             initialCameraPosition: _initialPosition,
-            myLocationEnabled: true,
+            myLocationEnabled: false,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
             onMapCreated: (controller) {
