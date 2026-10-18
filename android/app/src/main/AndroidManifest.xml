@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-package="com.alshaheen.taxinew"
+    package="com.alshaheen.taxinew">
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
@@ -14,7 +14,7 @@ package="com.alshaheen.taxinew"
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:theme="@android:style/Theme.Light.NoTitleBar"
+            android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
@@ -24,9 +24,11 @@ package="com.alshaheen.taxinew"
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-            <meta-data
-        android:name="com.google.android.geo.API_KEY"
-        android:value="AIzaSyBxp1Oib1-G2ZFZ4PJWNtFfwNWKsvPqJHk" />
+        
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyBxp1Oib1-G2ZFZ4PJWNtFfwNWKsvPqJHk" />
+            
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
