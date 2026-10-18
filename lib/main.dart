@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'home_map_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,7 +9,7 @@ void main() async {
   } catch (e) {
     debugPrint("خطأ في تهيئة الفايربيز: $e");
   }
-
+  
   runApp(const TaxiAlShaheenApp());
 }
 
@@ -26,7 +25,14 @@ class TaxiAlShaheenApp extends StatelessWidget {
         primarySwatch: Colors.amber,
         fontFamily: 'Roboto',
       ),
-      home: const HomeMapScreen(),
+      home: Scaffold(
+        body: Center(
+          child: Text(
+            'مرحباً بك يا أبو شاهين - تكسي الشاهين',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
     );
   }
 }
