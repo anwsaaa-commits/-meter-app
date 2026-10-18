@@ -1,21 +1,6 @@
-plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
-}
-
 android {
     namespace "com.alshaheen.taxi"
     compileSdkVersion 34
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
 
     defaultConfig {
         applicationId "com.alshaheen.taxi"
@@ -26,12 +11,29 @@ android {
         multiDexEnabled true
     }
 
+    compileOptions {
+        // تفعيل الـ desugaring لدعم مكتبات فايربيز وجوجل الجديدة
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
     buildTypes {
         release {
+            signingConfig signingConfigs.debug
         }
     }
 
     flutter {
         source "../.."
     }
+}
+
+dependencies {
+    // هذه الإضافة الضرورية لمنع خطأ Dexing / Desugaring
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
 }
