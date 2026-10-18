@@ -31,7 +31,7 @@ jobs:
           flutter pub get
 
       - name: Build APK
-        run: flutter build apk --debug --no-shrink
+        run: flutter build apk --release --no-shrink
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
