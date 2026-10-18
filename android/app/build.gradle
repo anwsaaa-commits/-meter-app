@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace "com.alshaheen.taxi"
+        namespace "com.alshaheen.taxinew"
     compileSdkVersion 34
 
     defaultConfig {
-        applicationId "com.alshaheen.taxi"
+        applicationId "com.alshaheen.taxinew"
         minSdkVersion 23
         targetSdkVersion 34
         versionCode 1
