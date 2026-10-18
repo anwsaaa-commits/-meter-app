@@ -1,35 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  try {
-    await Firebase.initializeApp();
-  } catch (e) {
-    debugPrint("خطأ في تهيئة الفايربيز: $e");
-  }
-  
-  runApp(const TaxiAlShaheenApp());
+void main() {
+  runApp(const MyApp());
 }
 
-class TaxiAlShaheenApp extends StatelessWidget {
-  const TaxiAlShaheenApp({Key? key}) : super(key: key);
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Taxi Al Shaheen',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.amber,
-        fontFamily: 'Roboto',
-      ),
       home: Scaffold(
+        backgroundColor: Colors.blue,
         body: Center(
           child: Text(
-            'مرحباً بك يا أبو شاهين - تكسي الشاهين',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            'شغال بنجاح يا أبو شاهين!',
+            style: TextStyle(
+              fontSize: 24,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),
